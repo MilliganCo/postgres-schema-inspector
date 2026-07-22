@@ -1,0 +1,1787 @@
+{
+  "$defs": {
+    "ClassificationSource": {
+      "enum": [
+        "connection_timeout_type",
+        "sqlstate",
+        "needs_password",
+        "audited_tls_signal",
+        "fallback_other",
+        "internal"
+      ],
+      "title": "ClassificationSource",
+      "type": "string"
+    },
+    "CommandExitCode": {
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        5
+      ],
+      "title": "CommandExitCode",
+      "type": "integer"
+    },
+    "CommandOutcome": {
+      "enum": [
+        "completed",
+        "failed"
+      ],
+      "title": "CommandOutcome",
+      "type": "string"
+    },
+    "ConnectTestCommandResult": {
+      "additionalProperties": false,
+      "properties": {
+        "app_version": {
+          "title": "App Version",
+          "type": "string"
+        },
+        "command": {
+          "const": "connect-test",
+          "default": "connect-test",
+          "title": "Command",
+          "type": "string"
+        },
+        "context": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConnectionContext"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "duration_ms": {
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExecutionError"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exit_code": {
+          "$ref": "#/$defs/CommandExitCode"
+        },
+        "findings": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "connection.established": "#/$defs/ConnectionEstablishedFinding",
+                "connection.failed": "#/$defs/ConnectionFailedFinding",
+                "connection.server_version_experimental": "#/$defs/ServerVersionExperimentalFinding",
+                "connection.server_version_supported": "#/$defs/ServerVersionSupportedFinding",
+                "connection.server_version_unsupported": "#/$defs/ServerVersionUnsupportedFinding",
+                "connection.server_version_untested": "#/$defs/ServerVersionUntestedFinding",
+                "connection.session_safety_misconfigured": "#/$defs/SessionSafetyMisconfiguredFinding",
+                "connection.session_safety_verified": "#/$defs/SessionSafetyVerifiedFinding"
+              },
+              "propertyName": "id"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ConnectionEstablishedFinding"
+              },
+              {
+                "$ref": "#/$defs/ConnectionFailedFinding"
+              },
+              {
+                "$ref": "#/$defs/ServerVersionSupportedFinding"
+              },
+              {
+                "$ref": "#/$defs/ServerVersionExperimentalFinding"
+              },
+              {
+                "$ref": "#/$defs/ServerVersionUntestedFinding"
+              },
+              {
+                "$ref": "#/$defs/ServerVersionUnsupportedFinding"
+              },
+              {
+                "$ref": "#/$defs/SessionSafetyVerifiedFinding"
+              },
+              {
+                "$ref": "#/$defs/SessionSafetyMisconfiguredFinding"
+              }
+            ]
+          },
+          "title": "Findings",
+          "type": "array"
+        },
+        "outcome": {
+          "$ref": "#/$defs/CommandOutcome"
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "started_at": {
+          "title": "Started At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "started_at",
+        "duration_ms",
+        "app_version",
+        "outcome",
+        "exit_code",
+        "context",
+        "findings",
+        "error"
+      ],
+      "title": "ConnectTestCommandResult",
+      "type": "object"
+    },
+    "ConnectionContext": {
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "title": "Database",
+          "type": "string"
+        },
+        "extensions": {
+          "$ref": "#/$defs/KnownExtensionSnapshot"
+        },
+        "in_recovery": {
+          "title": "In Recovery",
+          "type": "boolean"
+        },
+        "privileges": {
+          "$ref": "#/$defs/PrivilegeSnapshot"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "server_major": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Server Major"
+        },
+        "server_major_label": {
+          "title": "Server Major Label",
+          "type": "string"
+        },
+        "server_version": {
+          "title": "Server Version",
+          "type": "string"
+        },
+        "server_version_num": {
+          "title": "Server Version Num",
+          "type": "integer"
+        },
+        "session_user": {
+          "title": "Session User",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/ConnectionTargetContext"
+        },
+        "version_support": {
+          "$ref": "#/$defs/VersionSupportStatus"
+        }
+      },
+      "required": [
+        "database",
+        "role",
+        "session_user",
+        "server_version",
+        "server_version_num",
+        "server_major",
+        "server_major_label",
+        "version_support",
+        "in_recovery",
+        "target",
+        "privileges",
+        "extensions"
+      ],
+      "title": "ConnectionContext",
+      "type": "object"
+    },
+    "ConnectionEstablishedEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "tls_used": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Tls Used"
+        }
+      },
+      "required": [
+        "tls_used"
+      ],
+      "title": "ConnectionEstablishedEvidence",
+      "type": "object"
+    },
+    "ConnectionEstablishedFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "const": "high",
+          "default": "high",
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/ConnectionEstablishedEvidence"
+        },
+        "id": {
+          "const": "connection.established",
+          "default": "connection.established",
+          "title": "Id",
+          "type": "string"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "remediation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Remediation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ConnectionFindingScope"
+        },
+        "severity": {
+          "const": "ok",
+          "default": "ok",
+          "title": "Severity",
+          "type": "string"
+        },
+        "status": {
+          "const": "passed",
+          "default": "passed",
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "scope",
+        "evidence"
+      ],
+      "title": "ConnectionEstablishedFinding",
+      "type": "object"
+    },
+    "ConnectionFailedEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": [
+            "authentication_failed",
+            "network_unreachable",
+            "connect_timeout",
+            "tls_failed",
+            "database_missing",
+            "connection_failed"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "classification_source": {
+          "$ref": "#/$defs/ClassificationSource"
+        },
+        "sqlstate": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sqlstate"
+        }
+      },
+      "required": [
+        "category",
+        "classification_source",
+        "sqlstate"
+      ],
+      "title": "ConnectionFailedEvidence",
+      "type": "object"
+    },
+    "ConnectionFailedFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "const": "high",
+          "default": "high",
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/ConnectionFailedEvidence"
+        },
+        "id": {
+          "const": "connection.failed",
+          "default": "connection.failed",
+          "title": "Id",
+          "type": "string"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "remediation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Remediation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ConnectionFindingScope"
+        },
+        "severity": {
+          "const": "critical",
+          "default": "critical",
+          "title": "Severity",
+          "type": "string"
+        },
+        "status": {
+          "const": "triggered",
+          "default": "triggered",
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "scope",
+        "evidence"
+      ],
+      "title": "ConnectionFailedFinding",
+      "type": "object"
+    },
+    "ConnectionFindingScope": {
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/ConnectionTargetContext"
+        }
+      },
+      "required": [
+        "target"
+      ],
+      "title": "ConnectionFindingScope",
+      "type": "object"
+    },
+    "ConnectionTargetContext": {
+      "additionalProperties": false,
+      "properties": {
+        "explicit_host_fingerprint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Explicit Host Fingerprint"
+        },
+        "source": {
+          "$ref": "#/$defs/ConnectionTargetSource"
+        }
+      },
+      "required": [
+        "explicit_host_fingerprint",
+        "source"
+      ],
+      "title": "ConnectionTargetContext",
+      "type": "object"
+    },
+    "ConnectionTargetSource": {
+      "enum": [
+        "explicit_cli_host",
+        "libpq_resolved_unknown"
+      ],
+      "title": "ConnectionTargetSource",
+      "type": "string"
+    },
+    "DebugFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "function": {
+          "title": "Function",
+          "type": "string"
+        },
+        "line": {
+          "title": "Line",
+          "type": "integer"
+        },
+        "module": {
+          "title": "Module",
+          "type": "string"
+        }
+      },
+      "required": [
+        "module",
+        "function",
+        "line"
+      ],
+      "title": "DebugFrame",
+      "type": "object"
+    },
+    "DebugPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "causal_chain_types": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Causal Chain Types",
+          "type": "array"
+        },
+        "exception_type": {
+          "title": "Exception Type",
+          "type": "string"
+        },
+        "frames": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/DebugFrame"
+          },
+          "title": "Frames",
+          "type": "array"
+        }
+      },
+      "required": [
+        "exception_type"
+      ],
+      "title": "DebugPayload",
+      "type": "object"
+    },
+    "ExecutionError": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/ExecutionErrorCategory"
+        },
+        "classification_source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClassificationSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "code": {
+          "$ref": "#/$defs/ExecutionErrorCode"
+        },
+        "debug": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DebugPayload"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "sqlstate": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sqlstate"
+        }
+      },
+      "required": [
+        "code",
+        "category",
+        "message",
+        "retryable"
+      ],
+      "title": "ExecutionError",
+      "type": "object"
+    },
+    "ExecutionErrorCategory": {
+      "enum": [
+        "connection",
+        "session",
+        "operational",
+        "internal"
+      ],
+      "title": "ExecutionErrorCategory",
+      "type": "string"
+    },
+    "ExecutionErrorCode": {
+      "enum": [
+        "authentication_failed",
+        "network_unreachable",
+        "connect_timeout",
+        "tls_failed",
+        "database_missing",
+        "connection_failed",
+        "operational_failure",
+        "internal_failure"
+      ],
+      "title": "ExecutionErrorCode",
+      "type": "string"
+    },
+    "ExtensionAvailability": {
+      "enum": [
+        "available",
+        "unavailable"
+      ],
+      "title": "ExtensionAvailability",
+      "type": "string"
+    },
+    "KnownExtensionSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "hypopg": {
+          "$ref": "#/$defs/ExtensionAvailability"
+        },
+        "pg_buffercache": {
+          "$ref": "#/$defs/ExtensionAvailability"
+        },
+        "pg_stat_statements": {
+          "$ref": "#/$defs/ExtensionAvailability"
+        },
+        "pgstattuple": {
+          "$ref": "#/$defs/ExtensionAvailability"
+        }
+      },
+      "required": [
+        "hypopg",
+        "pg_stat_statements",
+        "pgstattuple",
+        "pg_buffercache"
+      ],
+      "title": "KnownExtensionSnapshot",
+      "type": "object"
+    },
+    "PrivilegeSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "can_use_pg_monitor": {
+          "title": "Can Use Pg Monitor",
+          "type": "boolean"
+        },
+        "can_use_pg_read_all_settings": {
+          "title": "Can Use Pg Read All Settings",
+          "type": "boolean"
+        },
+        "can_use_pg_read_all_stats": {
+          "title": "Can Use Pg Read All Stats",
+          "type": "boolean"
+        },
+        "is_superuser": {
+          "title": "Is Superuser",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_superuser",
+        "can_use_pg_monitor",
+        "can_use_pg_read_all_stats",
+        "can_use_pg_read_all_settings"
+      ],
+      "title": "PrivilegeSnapshot",
+      "type": "object"
+    },
+    "Remediation": {
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "summary"
+      ],
+      "title": "Remediation",
+      "type": "object"
+    },
+    "ServerVersionExperimentalEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "max_tested_stable_major": {
+          "title": "Max Tested Stable Major",
+          "type": "integer"
+        },
+        "server_major": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Server Major"
+        },
+        "server_major_label": {
+          "title": "Server Major Label",
+          "type": "string"
+        },
+        "server_version": {
+          "title": "Server Version",
+          "type": "string"
+        },
+        "server_version_num": {
+          "title": "Server Version Num",
+          "type": "integer"
+        },
+        "supported_majors": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Supported Majors",
+          "type": "array"
+        },
+        "tested_prerelease_majors": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Tested Prerelease Majors",
+          "type": "array"
+        },
+        "version_support": {
+          "const": "experimental",
+          "title": "Version Support",
+          "type": "string"
+        }
+      },
+      "required": [
+        "server_version",
+        "server_version_num",
+        "server_major",
+        "server_major_label",
+        "supported_majors",
+        "max_tested_stable_major",
+        "tested_prerelease_majors",
+        "version_support"
+      ],
+      "title": "ServerVersionExperimentalEvidence",
+      "type": "object"
+    },
+    "ServerVersionExperimentalFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "const": "high",
+          "default": "high",
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/ServerVersionExperimentalEvidence"
+        },
+        "id": {
+          "const": "connection.server_version_experimental",
+          "default": "connection.server_version_experimental",
+          "title": "Id",
+          "type": "string"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "remediation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Remediation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ConnectionFindingScope"
+        },
+        "severity": {
+          "const": "warning",
+          "default": "warning",
+          "title": "Severity",
+          "type": "string"
+        },
+        "status": {
+          "const": "triggered",
+          "default": "triggered",
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "scope",
+        "evidence"
+      ],
+      "title": "ServerVersionExperimentalFinding",
+      "type": "object"
+    },
+    "ServerVersionSupportedEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "max_tested_stable_major": {
+          "title": "Max Tested Stable Major",
+          "type": "integer"
+        },
+        "server_major": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Server Major"
+        },
+        "server_major_label": {
+          "title": "Server Major Label",
+          "type": "string"
+        },
+        "server_version": {
+          "title": "Server Version",
+          "type": "string"
+        },
+        "server_version_num": {
+          "title": "Server Version Num",
+          "type": "integer"
+        },
+        "supported_majors": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Supported Majors",
+          "type": "array"
+        },
+        "tested_prerelease_majors": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Tested Prerelease Majors",
+          "type": "array"
+        },
+        "version_support": {
+          "const": "supported",
+          "title": "Version Support",
+          "type": "string"
+        }
+      },
+      "required": [
+        "server_version",
+        "server_version_num",
+        "server_major",
+        "server_major_label",
+        "supported_majors",
+        "max_tested_stable_major",
+        "tested_prerelease_majors",
+        "version_support"
+      ],
+      "title": "ServerVersionSupportedEvidence",
+      "type": "object"
+    },
+    "ServerVersionSupportedFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "const": "high",
+          "default": "high",
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/ServerVersionSupportedEvidence"
+        },
+        "id": {
+          "const": "connection.server_version_supported",
+          "default": "connection.server_version_supported",
+          "title": "Id",
+          "type": "string"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "remediation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Remediation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ConnectionFindingScope"
+        },
+        "severity": {
+          "const": "ok",
+          "default": "ok",
+          "title": "Severity",
+          "type": "string"
+        },
+        "status": {
+          "const": "passed",
+          "default": "passed",
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "scope",
+        "evidence"
+      ],
+      "title": "ServerVersionSupportedFinding",
+      "type": "object"
+    },
+    "ServerVersionUnsupportedEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "max_tested_stable_major": {
+          "title": "Max Tested Stable Major",
+          "type": "integer"
+        },
+        "server_major": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Server Major"
+        },
+        "server_major_label": {
+          "title": "Server Major Label",
+          "type": "string"
+        },
+        "server_version": {
+          "title": "Server Version",
+          "type": "string"
+        },
+        "server_version_num": {
+          "title": "Server Version Num",
+          "type": "integer"
+        },
+        "supported_majors": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Supported Majors",
+          "type": "array"
+        },
+        "tested_prerelease_majors": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Tested Prerelease Majors",
+          "type": "array"
+        },
+        "version_support": {
+          "enum": [
+            "unsupported_older",
+            "unsupported_legacy"
+          ],
+          "title": "Version Support",
+          "type": "string"
+        }
+      },
+      "required": [
+        "server_version",
+        "server_version_num",
+        "server_major",
+        "server_major_label",
+        "supported_majors",
+        "max_tested_stable_major",
+        "tested_prerelease_majors",
+        "version_support"
+      ],
+      "title": "ServerVersionUnsupportedEvidence",
+      "type": "object"
+    },
+    "ServerVersionUnsupportedFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "const": "high",
+          "default": "high",
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/ServerVersionUnsupportedEvidence"
+        },
+        "id": {
+          "const": "connection.server_version_unsupported",
+          "default": "connection.server_version_unsupported",
+          "title": "Id",
+          "type": "string"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "remediation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Remediation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ConnectionFindingScope"
+        },
+        "severity": {
+          "const": "critical",
+          "default": "critical",
+          "title": "Severity",
+          "type": "string"
+        },
+        "status": {
+          "const": "triggered",
+          "default": "triggered",
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "scope",
+        "evidence"
+      ],
+      "title": "ServerVersionUnsupportedFinding",
+      "type": "object"
+    },
+    "ServerVersionUntestedEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "max_tested_stable_major": {
+          "title": "Max Tested Stable Major",
+          "type": "integer"
+        },
+        "server_major": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Server Major"
+        },
+        "server_major_label": {
+          "title": "Server Major Label",
+          "type": "string"
+        },
+        "server_version": {
+          "title": "Server Version",
+          "type": "string"
+        },
+        "server_version_num": {
+          "title": "Server Version Num",
+          "type": "integer"
+        },
+        "supported_majors": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Supported Majors",
+          "type": "array"
+        },
+        "tested_prerelease_majors": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Tested Prerelease Majors",
+          "type": "array"
+        },
+        "version_support": {
+          "const": "untested_newer",
+          "title": "Version Support",
+          "type": "string"
+        }
+      },
+      "required": [
+        "server_version",
+        "server_version_num",
+        "server_major",
+        "server_major_label",
+        "supported_majors",
+        "max_tested_stable_major",
+        "tested_prerelease_majors",
+        "version_support"
+      ],
+      "title": "ServerVersionUntestedEvidence",
+      "type": "object"
+    },
+    "ServerVersionUntestedFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "const": "high",
+          "default": "high",
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/ServerVersionUntestedEvidence"
+        },
+        "id": {
+          "const": "connection.server_version_untested",
+          "default": "connection.server_version_untested",
+          "title": "Id",
+          "type": "string"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "remediation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Remediation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ConnectionFindingScope"
+        },
+        "severity": {
+          "const": "warning",
+          "default": "warning",
+          "title": "Severity",
+          "type": "string"
+        },
+        "status": {
+          "const": "triggered",
+          "default": "triggered",
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "scope",
+        "evidence"
+      ],
+      "title": "ServerVersionUntestedFinding",
+      "type": "object"
+    },
+    "SessionSafetyExpectedState": {
+      "additionalProperties": false,
+      "properties": {
+        "default_transaction_read_only": {
+          "const": true,
+          "title": "Default Transaction Read Only",
+          "type": "boolean"
+        },
+        "idle_in_transaction_session_timeout_ms": {
+          "title": "Idle In Transaction Session Timeout Ms",
+          "type": "integer"
+        },
+        "lock_timeout_ms": {
+          "title": "Lock Timeout Ms",
+          "type": "integer"
+        },
+        "search_path": {
+          "maxItems": 1,
+          "minItems": 1,
+          "prefixItems": [
+            {
+              "const": "pg_catalog",
+              "type": "string"
+            }
+          ],
+          "title": "Search Path",
+          "type": "array"
+        },
+        "statement_timeout_ms": {
+          "title": "Statement Timeout Ms",
+          "type": "integer"
+        },
+        "transaction_read_only": {
+          "const": true,
+          "title": "Transaction Read Only",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "default_transaction_read_only",
+        "transaction_read_only",
+        "statement_timeout_ms",
+        "lock_timeout_ms",
+        "idle_in_transaction_session_timeout_ms",
+        "search_path"
+      ],
+      "title": "SessionSafetyExpectedState",
+      "type": "object"
+    },
+    "SessionSafetyMisconfigurationCategory": {
+      "enum": [
+        "set_rejected",
+        "verification_mismatch"
+      ],
+      "title": "SessionSafetyMisconfigurationCategory",
+      "type": "string"
+    },
+    "SessionSafetyMisconfiguredEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/SessionSafetyMisconfigurationCategory"
+        },
+        "expected": {
+          "$ref": "#/$defs/SessionSafetyExpectedState"
+        },
+        "observed": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionSafetyObservedState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sqlstate": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sqlstate"
+        }
+      },
+      "required": [
+        "category",
+        "expected",
+        "observed",
+        "sqlstate"
+      ],
+      "title": "SessionSafetyMisconfiguredEvidence",
+      "type": "object"
+    },
+    "SessionSafetyMisconfiguredFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "const": "high",
+          "default": "high",
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/SessionSafetyMisconfiguredEvidence"
+        },
+        "id": {
+          "const": "connection.session_safety_misconfigured",
+          "default": "connection.session_safety_misconfigured",
+          "title": "Id",
+          "type": "string"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "remediation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Remediation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ConnectionFindingScope"
+        },
+        "severity": {
+          "const": "critical",
+          "default": "critical",
+          "title": "Severity",
+          "type": "string"
+        },
+        "status": {
+          "const": "triggered",
+          "default": "triggered",
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "scope",
+        "evidence"
+      ],
+      "title": "SessionSafetyMisconfiguredFinding",
+      "type": "object"
+    },
+    "SessionSafetyObservedState": {
+      "additionalProperties": false,
+      "properties": {
+        "default_transaction_read_only": {
+          "title": "Default Transaction Read Only",
+          "type": "boolean"
+        },
+        "idle_in_transaction_session_timeout_ms": {
+          "title": "Idle In Transaction Session Timeout Ms",
+          "type": "integer"
+        },
+        "lock_timeout_ms": {
+          "title": "Lock Timeout Ms",
+          "type": "integer"
+        },
+        "search_path": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Search Path",
+          "type": "array"
+        },
+        "statement_timeout_ms": {
+          "title": "Statement Timeout Ms",
+          "type": "integer"
+        },
+        "transaction_read_only": {
+          "title": "Transaction Read Only",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "default_transaction_read_only",
+        "transaction_read_only",
+        "statement_timeout_ms",
+        "lock_timeout_ms",
+        "idle_in_transaction_session_timeout_ms",
+        "search_path"
+      ],
+      "title": "SessionSafetyObservedState",
+      "type": "object"
+    },
+    "SessionSafetyVerifiedEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "application_name_kind": {
+          "enum": [
+            "pginspect_owned",
+            "custom",
+            "empty"
+          ],
+          "title": "Application Name Kind",
+          "type": "string"
+        },
+        "application_name_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Application Name Value"
+        },
+        "default_transaction_read_only": {
+          "const": true,
+          "title": "Default Transaction Read Only",
+          "type": "boolean"
+        },
+        "idle_in_transaction_session_timeout_ms": {
+          "title": "Idle In Transaction Session Timeout Ms",
+          "type": "integer"
+        },
+        "lock_timeout_ms": {
+          "title": "Lock Timeout Ms",
+          "type": "integer"
+        },
+        "read_only_is_sandbox": {
+          "const": false,
+          "title": "Read Only Is Sandbox",
+          "type": "boolean"
+        },
+        "read_only_scope": {
+          "const": "postgresql_transaction",
+          "title": "Read Only Scope",
+          "type": "string"
+        },
+        "search_path": {
+          "maxItems": 1,
+          "minItems": 1,
+          "prefixItems": [
+            {
+              "const": "pg_catalog",
+              "type": "string"
+            }
+          ],
+          "title": "Search Path",
+          "type": "array"
+        },
+        "statement_timeout_ms": {
+          "title": "Statement Timeout Ms",
+          "type": "integer"
+        },
+        "transaction_read_only": {
+          "const": true,
+          "title": "Transaction Read Only",
+          "type": "boolean"
+        },
+        "verification_level": {
+          "const": "settings",
+          "title": "Verification Level",
+          "type": "string"
+        },
+        "write_probe": {
+          "const": "not_run",
+          "title": "Write Probe",
+          "type": "string"
+        }
+      },
+      "required": [
+        "default_transaction_read_only",
+        "transaction_read_only",
+        "statement_timeout_ms",
+        "lock_timeout_ms",
+        "idle_in_transaction_session_timeout_ms",
+        "search_path",
+        "application_name_kind",
+        "application_name_value",
+        "write_probe",
+        "verification_level",
+        "read_only_scope",
+        "read_only_is_sandbox"
+      ],
+      "title": "SessionSafetyVerifiedEvidence",
+      "type": "object"
+    },
+    "SessionSafetyVerifiedFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "const": "high",
+          "default": "high",
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/SessionSafetyVerifiedEvidence"
+        },
+        "id": {
+          "const": "connection.session_safety_verified",
+          "default": "connection.session_safety_verified",
+          "title": "Id",
+          "type": "string"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "remediation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Remediation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ConnectionFindingScope"
+        },
+        "severity": {
+          "const": "ok",
+          "default": "ok",
+          "title": "Severity",
+          "type": "string"
+        },
+        "status": {
+          "const": "passed",
+          "default": "passed",
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "scope",
+        "evidence"
+      ],
+      "title": "SessionSafetyVerifiedFinding",
+      "type": "object"
+    },
+    "VersionCommandResult": {
+      "additionalProperties": false,
+      "properties": {
+        "app_version": {
+          "title": "App Version",
+          "type": "string"
+        },
+        "command": {
+          "const": "version",
+          "default": "version",
+          "title": "Command",
+          "type": "string"
+        },
+        "context": {
+          "default": null,
+          "title": "Context",
+          "type": "null"
+        },
+        "duration_ms": {
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "error": {
+          "default": null,
+          "title": "Error",
+          "type": "null"
+        },
+        "exit_code": {
+          "const": 0,
+          "default": 0,
+          "title": "Exit Code",
+          "type": "integer"
+        },
+        "findings": {
+          "default": [],
+          "maxItems": 0,
+          "minItems": 0,
+          "title": "Findings",
+          "type": "array"
+        },
+        "outcome": {
+          "const": "completed",
+          "default": "completed",
+          "title": "Outcome",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "started_at": {
+          "title": "Started At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "started_at",
+        "duration_ms",
+        "app_version"
+      ],
+      "title": "VersionCommandResult",
+      "type": "object"
+    },
+    "VersionSupportStatus": {
+      "enum": [
+        "supported",
+        "experimental",
+        "untested_newer",
+        "unsupported_older",
+        "unsupported_legacy"
+      ],
+      "title": "VersionSupportStatus",
+      "type": "string"
+    }
+  },
+  "$id": "urn:pginspect:schema:command-result:1.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "discriminator": {
+    "mapping": {
+      "connect-test": "#/$defs/ConnectTestCommandResult",
+      "version": "#/$defs/VersionCommandResult"
+    },
+    "propertyName": "command"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/VersionCommandResult"
+    },
+    {
+      "$ref": "#/$defs/ConnectTestCommandResult"
+    }
+  ]
+}

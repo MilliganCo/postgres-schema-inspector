@@ -1,0 +1,65 @@
+{
+  "app_version": "0.1.0",
+  "command": "connect-test",
+  "context": null,
+  "duration_ms": 10,
+  "error": null,
+  "exit_code": 2,
+  "findings": [
+    {
+      "confidence": "high",
+      "evidence": {
+        "tls_used": true
+      },
+      "id": "connection.established",
+      "limitations": [],
+      "remediation": null,
+      "schema_version": "1.0",
+      "scope": {
+        "target": {
+          "explicit_host_fingerprint": null,
+          "source": "libpq_resolved_unknown"
+        }
+      },
+      "severity": "ok",
+      "status": "passed",
+      "summary": null,
+      "title": "PostgreSQL connection established"
+    },
+    {
+      "confidence": "high",
+      "evidence": {
+        "category": "set_rejected",
+        "expected": {
+          "default_transaction_read_only": true,
+          "idle_in_transaction_session_timeout_ms": 15000,
+          "lock_timeout_ms": 2000,
+          "search_path": [
+            "pg_catalog"
+          ],
+          "statement_timeout_ms": 15000,
+          "transaction_read_only": true
+        },
+        "observed": null,
+        "sqlstate": null
+      },
+      "id": "connection.session_safety_misconfigured",
+      "limitations": [],
+      "remediation": null,
+      "schema_version": "1.0",
+      "scope": {
+        "target": {
+          "explicit_host_fingerprint": null,
+          "source": "libpq_resolved_unknown"
+        }
+      },
+      "severity": "critical",
+      "status": "triggered",
+      "summary": null,
+      "title": "Diagnostic session safety settings are not active"
+    }
+  ],
+  "outcome": "completed",
+  "schema_version": "1.0",
+  "started_at": "2026-01-15T12:00:00.000Z"
+}

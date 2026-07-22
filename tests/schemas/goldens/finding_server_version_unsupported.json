@@ -1,0 +1,35 @@
+{
+  "confidence": "high",
+  "evidence": {
+    "max_tested_stable_major": 18,
+    "server_major": 13,
+    "server_major_label": "13",
+    "server_version": "13.8",
+    "server_version_num": 130008,
+    "supported_majors": [
+      14,
+      15,
+      16,
+      17,
+      18
+    ],
+    "tested_prerelease_majors": [
+      19
+    ],
+    "version_support": "unsupported_older"
+  },
+  "id": "connection.server_version_unsupported",
+  "limitations": [],
+  "remediation": null,
+  "schema_version": "1.0",
+  "scope": {
+    "target": {
+      "explicit_host_fingerprint": null,
+      "source": "libpq_resolved_unknown"
+    }
+  },
+  "severity": "critical",
+  "status": "triggered",
+  "summary": null,
+  "title": "PostgreSQL server version is unsupported"
+}

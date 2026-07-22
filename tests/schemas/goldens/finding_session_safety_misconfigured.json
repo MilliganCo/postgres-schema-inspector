@@ -1,0 +1,32 @@
+{
+  "confidence": "high",
+  "evidence": {
+    "category": "set_rejected",
+    "expected": {
+      "default_transaction_read_only": true,
+      "idle_in_transaction_session_timeout_ms": 15000,
+      "lock_timeout_ms": 2000,
+      "search_path": [
+        "pg_catalog"
+      ],
+      "statement_timeout_ms": 15000,
+      "transaction_read_only": true
+    },
+    "observed": null,
+    "sqlstate": null
+  },
+  "id": "connection.session_safety_misconfigured",
+  "limitations": [],
+  "remediation": null,
+  "schema_version": "1.0",
+  "scope": {
+    "target": {
+      "explicit_host_fingerprint": null,
+      "source": "libpq_resolved_unknown"
+    }
+  },
+  "severity": "critical",
+  "status": "triggered",
+  "summary": null,
+  "title": "Diagnostic session safety settings are not active"
+}

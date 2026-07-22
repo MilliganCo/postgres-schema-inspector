@@ -1,0 +1,33 @@
+{
+  "confidence": "high",
+  "evidence": {
+    "application_name_kind": "pginspect_owned",
+    "application_name_value": "pginspect/0.1.0",
+    "default_transaction_read_only": true,
+    "idle_in_transaction_session_timeout_ms": 15000,
+    "lock_timeout_ms": 2000,
+    "read_only_is_sandbox": false,
+    "read_only_scope": "postgresql_transaction",
+    "search_path": [
+      "pg_catalog"
+    ],
+    "statement_timeout_ms": 15000,
+    "transaction_read_only": true,
+    "verification_level": "settings",
+    "write_probe": "not_run"
+  },
+  "id": "connection.session_safety_verified",
+  "limitations": [],
+  "remediation": null,
+  "schema_version": "1.0",
+  "scope": {
+    "target": {
+      "explicit_host_fingerprint": null,
+      "source": "libpq_resolved_unknown"
+    }
+  },
+  "severity": "ok",
+  "status": "passed",
+  "summary": null,
+  "title": "Diagnostic session safety settings are active"
+}

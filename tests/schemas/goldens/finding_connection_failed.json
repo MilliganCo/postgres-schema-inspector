@@ -1,0 +1,22 @@
+{
+  "confidence": "high",
+  "evidence": {
+    "category": "authentication_failed",
+    "classification_source": "sqlstate",
+    "sqlstate": "28P01"
+  },
+  "id": "connection.failed",
+  "limitations": [],
+  "remediation": null,
+  "schema_version": "1.0",
+  "scope": {
+    "target": {
+      "explicit_host_fingerprint": null,
+      "source": "libpq_resolved_unknown"
+    }
+  },
+  "severity": "critical",
+  "status": "triggered",
+  "summary": null,
+  "title": "Could not connect to PostgreSQL"
+}

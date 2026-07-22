@@ -1,0 +1,43 @@
+{
+  "app_version": "0.1.0",
+  "command": "connect-test",
+  "context": null,
+  "duration_ms": 5,
+  "error": {
+    "category": "connection",
+    "classification_source": "sqlstate",
+    "code": "authentication_failed",
+    "debug": null,
+    "message": "PostgreSQL authentication failed.",
+    "retryable": false,
+    "sqlstate": "28P01"
+  },
+  "exit_code": 3,
+  "findings": [
+    {
+      "confidence": "high",
+      "evidence": {
+        "category": "authentication_failed",
+        "classification_source": "sqlstate",
+        "sqlstate": "28P01"
+      },
+      "id": "connection.failed",
+      "limitations": [],
+      "remediation": null,
+      "schema_version": "1.0",
+      "scope": {
+        "target": {
+          "explicit_host_fingerprint": null,
+          "source": "libpq_resolved_unknown"
+        }
+      },
+      "severity": "critical",
+      "status": "triggered",
+      "summary": null,
+      "title": "Could not connect to PostgreSQL"
+    }
+  ],
+  "outcome": "failed",
+  "schema_version": "1.0",
+  "started_at": "2026-01-15T12:00:00.000Z"
+}

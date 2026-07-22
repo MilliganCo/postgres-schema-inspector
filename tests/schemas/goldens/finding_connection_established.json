@@ -1,0 +1,20 @@
+{
+  "confidence": "high",
+  "evidence": {
+    "tls_used": true
+  },
+  "id": "connection.established",
+  "limitations": [],
+  "remediation": null,
+  "schema_version": "1.0",
+  "scope": {
+    "target": {
+      "explicit_host_fingerprint": null,
+      "source": "libpq_resolved_unknown"
+    }
+  },
+  "severity": "ok",
+  "status": "passed",
+  "summary": null,
+  "title": "PostgreSQL connection established"
+}

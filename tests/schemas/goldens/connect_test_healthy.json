@@ -1,0 +1,127 @@
+{
+  "app_version": "0.1.0",
+  "command": "connect-test",
+  "context": {
+    "database": "shop",
+    "extensions": {
+      "hypopg": "unavailable",
+      "pg_buffercache": "unavailable",
+      "pg_stat_statements": "unavailable",
+      "pgstattuple": "unavailable"
+    },
+    "in_recovery": false,
+    "privileges": {
+      "can_use_pg_monitor": true,
+      "can_use_pg_read_all_settings": false,
+      "can_use_pg_read_all_stats": true,
+      "is_superuser": false
+    },
+    "role": "monitor",
+    "server_major": 18,
+    "server_major_label": "18",
+    "server_version": "18.4",
+    "server_version_num": 180004,
+    "session_user": "monitor",
+    "target": {
+      "explicit_host_fingerprint": null,
+      "source": "libpq_resolved_unknown"
+    },
+    "version_support": "supported"
+  },
+  "duration_ms": 42,
+  "error": null,
+  "exit_code": 0,
+  "findings": [
+    {
+      "confidence": "high",
+      "evidence": {
+        "tls_used": true
+      },
+      "id": "connection.established",
+      "limitations": [],
+      "remediation": null,
+      "schema_version": "1.0",
+      "scope": {
+        "target": {
+          "explicit_host_fingerprint": null,
+          "source": "libpq_resolved_unknown"
+        }
+      },
+      "severity": "ok",
+      "status": "passed",
+      "summary": null,
+      "title": "PostgreSQL connection established"
+    },
+    {
+      "confidence": "high",
+      "evidence": {
+        "application_name_kind": "pginspect_owned",
+        "application_name_value": "pginspect/0.1.0",
+        "default_transaction_read_only": true,
+        "idle_in_transaction_session_timeout_ms": 15000,
+        "lock_timeout_ms": 2000,
+        "read_only_is_sandbox": false,
+        "read_only_scope": "postgresql_transaction",
+        "search_path": [
+          "pg_catalog"
+        ],
+        "statement_timeout_ms": 15000,
+        "transaction_read_only": true,
+        "verification_level": "settings",
+        "write_probe": "not_run"
+      },
+      "id": "connection.session_safety_verified",
+      "limitations": [],
+      "remediation": null,
+      "schema_version": "1.0",
+      "scope": {
+        "target": {
+          "explicit_host_fingerprint": null,
+          "source": "libpq_resolved_unknown"
+        }
+      },
+      "severity": "ok",
+      "status": "passed",
+      "summary": null,
+      "title": "Diagnostic session safety settings are active"
+    },
+    {
+      "confidence": "high",
+      "evidence": {
+        "max_tested_stable_major": 18,
+        "server_major": 18,
+        "server_major_label": "18",
+        "server_version": "18.4",
+        "server_version_num": 180004,
+        "supported_majors": [
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "tested_prerelease_majors": [
+          19
+        ],
+        "version_support": "supported"
+      },
+      "id": "connection.server_version_supported",
+      "limitations": [],
+      "remediation": null,
+      "schema_version": "1.0",
+      "scope": {
+        "target": {
+          "explicit_host_fingerprint": null,
+          "source": "libpq_resolved_unknown"
+        }
+      },
+      "severity": "ok",
+      "status": "passed",
+      "summary": null,
+      "title": "PostgreSQL server version is supported"
+    }
+  ],
+  "outcome": "completed",
+  "schema_version": "1.0",
+  "started_at": "2026-01-15T12:00:00.000Z"
+}
