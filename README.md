@@ -1,36 +1,72 @@
 # pginspect
 
-**postgres-schema-inspector** — explainable, read-only PostgreSQL diagnostics.
+**postgres-schema-inspector** — explainable, read-only PostgreSQL diagnostics (Foundation).
 
-> **Status:** Foundation work in progress (private). Not yet published to PyPI.
+> **Status:** Foundation complete in this private repository. Not published to PyPI. Visibility remains private until a separate `PUBLICATION_APPROVED` gate.
 
 ## What it is
 
-`pginspect` connects to PostgreSQL using libpq-compatible configuration, establishes a fail-closed read-only diagnostic session, and reports structured findings. It does **not** truncate data, run maintenance writes, or provide a GUI.
+`pginspect` connects to PostgreSQL using libpq-compatible configuration, establishes a fail-closed read-only diagnostic session, and reports structured findings as text or JSON.
 
-## Planned Foundation commands
+It does **not** truncate data, run maintenance writes, claim that a role is unable to write, or provide a GUI. Session safety means verified `default_transaction_read_only` / timeouts / `search_path` — write probes are CI-only adversarial tests, not a product feature.
+
+## Commands
 
 | Command | Purpose |
 | ------- | ------- |
 | `pginspect version` | Print the installed package version |
 | `pginspect connect-test` | Verify connectivity and session safety settings |
 
-Implementation lands in later Foundation tasks. There are no other product commands in scope for Foundation.
+There are no other product commands in Foundation.
+
+### Examples
+
+```bash
+pginspect version
+pginspect connect-test --host db.example --port 5432 --dbname app --user monitor --format json
+pginspect connect-test --service mylibpqservice --format text
+```
 
 ## Authentication
 
-Connection parameters (`--host`, `--port`, `--dbname`, `--user`, `--service`, SSL mode, timeouts) are explicit CLI options where supported. **Passwords are not accepted on the command line.** Use libpq mechanisms (environment variables, `.pgpass`, service files) — the application does not define host, port, user, database, or password defaults.
+Connection parameters (`--host` / `-h`, `--port`, `--dbname`, `--user`, `--service`, `--sslmode`, timeouts) are explicit CLI options where supported.
+
+**Passwords are not accepted on the command line** (no `--password`, `-W`, or `--dsn`). Use libpq mechanisms:
+
+- environment (`PGPASSWORD`, and other libpq variables as documented by PostgreSQL)
+- `.pgpass`
+- service files (`PGSERVICEFILE` / `--service`)
+
+The application does **not** define host, port, user, database, or password defaults and does not copy `PG*` variables into connect kwargs.
 
 ## Install from source
 
 ```bash
 pip install -e .
 pip install -r requirements/ci.txt
+pginspect version
 ```
+
+Requires Python ≥ 3.11.
+
+## Testing
+
+```bash
+# Default: unit tests only (no PostgreSQL required)
+pytest
+
+# Integration / safety (require a throwaway Postgres and PGINSPECT_TEST_DSN)
+export PGINSPECT_TEST_DSN='postgresql://postgres:…@localhost:5432/postgres'
+pytest tests/integration
+pytest tests/safety
+```
+
+CI runs PostgreSQL 14–18 matrices via GitHub Actions service containers.
 
 ## Documentation
 
 - Design: [`docs/superpowers/specs/2026-07-22-foundation-design.md`](docs/superpowers/specs/2026-07-22-foundation-design.md)
+- Traceability: [`docs/superpowers/specs/2026-07-22-foundation-test-traceability.md`](docs/superpowers/specs/2026-07-22-foundation-test-traceability.md)
 - Implementation plan: [`docs/superpowers/plans/2026-07-22-foundation.md`](docs/superpowers/plans/2026-07-22-foundation.md)
 
 ## License

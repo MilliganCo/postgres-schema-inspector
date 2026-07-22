@@ -75,11 +75,6 @@ def pg_dsn() -> str:
 
 
 @pytest.fixture(scope="session")
-def pg_endpoint(pg_dsn: str) -> dict[str, str | int]:
-    return _parse_dsn(pg_dsn)
-
-
-@pytest.fixture(scope="session", autouse=True)
 def _apply_probe_fixture(pg_dsn: str) -> None:
     sql = FIXTURE_SQL.read_text(encoding="utf-8")
     with psycopg.connect(pg_dsn, autocommit=True) as conn:
@@ -94,6 +89,11 @@ def _apply_probe_fixture(pg_dsn: str) -> None:
                 f"server_version_num={version_num} major={major} "
                 f"!= expected {expected_major}"
             )
+
+
+@pytest.fixture(scope="session")
+def pg_endpoint(pg_dsn: str, _apply_probe_fixture: None) -> dict[str, str | int]:
+    return _parse_dsn(pg_dsn)
 
 
 @pytest.fixture
