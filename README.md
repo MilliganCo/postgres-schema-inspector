@@ -21,6 +21,13 @@ Implementation lands in later Foundation tasks. There are no other product comma
 
 Connection parameters (`--host`, `--port`, `--dbname`, `--user`, `--service`, SSL mode, timeouts) are explicit CLI options where supported. **Passwords are not accepted on the command line.** Use libpq mechanisms (environment variables, `.pgpass`, service files) — the application does not define host, port, user, database, or password defaults.
 
+## Install from source
+
+```bash
+pip install -e .
+pip install -r requirements/ci.txt
+```
+
 ## Documentation
 
 - Design: [`docs/superpowers/specs/2026-07-22-foundation-design.md`](docs/superpowers/specs/2026-07-22-foundation-design.md)
