@@ -67,6 +67,7 @@ CI runs PostgreSQL 14–18 matrices via GitHub Actions service containers.
 
 - Design: [`docs/superpowers/specs/2026-07-22-foundation-design.md`](docs/superpowers/specs/2026-07-22-foundation-design.md)
 - Traceability: [`docs/superpowers/specs/2026-07-22-foundation-test-traceability.md`](docs/superpowers/specs/2026-07-22-foundation-test-traceability.md)
+- Completion checklist: [`docs/superpowers/specs/FOUNDATION_COMPLETE.md`](docs/superpowers/specs/FOUNDATION_COMPLETE.md)
 - Implementation plan: [`docs/superpowers/plans/2026-07-22-foundation.md`](docs/superpowers/plans/2026-07-22-foundation.md)
 
 ## License
