@@ -1,0 +1,65 @@
+name: coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        # Official tag; pin digest before public release if SHA unknown.
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: pginspect_ci_postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGINSPECT_TEST_DSN: postgresql://postgres:pginspect_ci_postgres@localhost:5432/postgres
+      PGINSPECT_EXPECT_PG_MAJOR: "18"
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package and CI tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install -r requirements/ci.txt
+
+      - name: Assert PostgreSQL 18
+        run: |
+          python - <<'PY'
+          import os
+          import psycopg
+          with psycopg.connect(os.environ["PGINSPECT_TEST_DSN"]) as conn:
+              num = int(conn.execute("SHOW server_version_num").fetchone()[0])
+          assert num // 10000 == 18, num
+          print(f"ok server_version_num={num}")
+          PY
+
+      - name: Coverage unit + integration + safety
+        run: |
+          python -m pytest tests/unit tests/integration tests/safety \
+            --cov=pginspect \
+            --cov-branch \
+            --cov-report=term-missing \
+            --cov-fail-under=90
