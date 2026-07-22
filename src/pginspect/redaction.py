@@ -15,14 +15,10 @@ _MAX_SANITIZED_LENGTH: Final[int] = 512
 _MAX_TYPE_NAME_LENGTH: Final[int] = 160
 
 # Defense-in-depth patterns for untrusted strings (never treat as permission to keep driver text).
-_PASSWORD_ASSIGN = re.compile(
-    r"(?i)(?:password|passwd|pwd|passfile)\s*[:=]\s*[^\s;'\"]+"
-)
+_PASSWORD_ASSIGN = re.compile(r"(?i)(?:password|passwd|pwd|passfile)\s*[:=]\s*[^\s;'\"]+")
 _URI = re.compile(r"(?i)\b[a-z][a-z0-9+.-]*://[^\s]+")
 _HOST_ASSIGN = re.compile(r"(?i)\b(?:host|hostname|server)\s*[:=]\s*[^\s;'\"]+")
-_HOME_PATH = re.compile(
-    r"(?i)(?:/home/[^/\s]+|/Users/[^/\s]+|C:\\Users\\[^\\\s]+|~[/\\][^\s]*)"
-)
+_HOME_PATH = re.compile(r"(?i)(?:/home/[^/\s]+|/Users/[^/\s]+|C:\\Users\\[^\\\s]+|~[/\\][^\s]*)")
 _SENSITIVE_PATH = re.compile(
     r"(?i)(?:[^\s]*\.pgpass|[^\s]*pgpassfile[^\s]*|[^\s]*ssl(?:root)?cert[^\s]*|"
     r"[^\s]*sslkey[^\s]*|[^\s]*client\.key[^\s]*|/srv/[^\s]+)"

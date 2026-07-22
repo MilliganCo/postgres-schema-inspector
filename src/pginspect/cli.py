@@ -101,35 +101,41 @@ def _long_option_name(param: click.Parameter | None) -> str | None:
 
 def classify_usage_error(exc: click.UsageError) -> tuple[CliErrorCode, str]:
     """Map Click usage exceptions to catalogued messages (never echo values)."""
-    if isinstance(exc, CommandRequiredError):
+    name = type(exc).__name__
+    if isinstance(exc, CommandRequiredError) or name == "CommandRequiredError":
         return CliErrorCode.COMMAND_REQUIRED, "A command is required."
-    if isinstance(exc, UnknownCommandError):
+    if isinstance(exc, UnknownCommandError) or name == "UnknownCommandError":
         return CliErrorCode.UNKNOWN_COMMAND, "Unknown command."
-    if isinstance(exc, click.NoSuchOption):
+    if isinstance(exc, click.NoSuchOption) or name == "NoSuchOption":
         return CliErrorCode.UNKNOWN_OPTION, "Unknown option."
-    if isinstance(exc, click.MissingParameter):
-        name = _long_option_name(exc.param)
-        if name:
-            return CliErrorCode.MISSING_OPTION_VALUE, f"Missing value for --{name}."
+    if isinstance(exc, click.MissingParameter) or name == "MissingParameter":
+        param_name = _long_option_name(getattr(exc, "param", None))
+        if param_name:
+            return CliErrorCode.MISSING_OPTION_VALUE, f"Missing value for --{param_name}."
         return CliErrorCode.MISSING_OPTION_VALUE, "Invalid command line."
-    if isinstance(exc, click.BadOptionUsage):
+    if isinstance(exc, click.BadOptionUsage) or name == "BadOptionUsage":
         option = getattr(exc, "option_name", None)
         if isinstance(option, str) and option.startswith("--"):
-            name = option[2:]
-            return CliErrorCode.MISSING_OPTION_VALUE, f"Missing value for --{name}."
+            opt_name = option[2:]
+            return CliErrorCode.MISSING_OPTION_VALUE, f"Missing value for --{opt_name}."
         if isinstance(option, str) and option.startswith("-") and len(option) == 2:
-            # Map short option to catalogued long name when possible via ctx — keep generic.
             return CliErrorCode.MISSING_OPTION_VALUE, "Invalid command line."
         return CliErrorCode.MISSING_OPTION_VALUE, "Invalid command line."
-    if isinstance(exc, click.BadParameter):
-        name = _long_option_name(exc.param)
-        if name:
-            return CliErrorCode.INVALID_OPTION_VALUE, f"Invalid value for --{name}."
+    if isinstance(exc, click.BadParameter) or name == "BadParameter":
+        param_name = _long_option_name(getattr(exc, "param", None))
+        if param_name:
+            return CliErrorCode.INVALID_OPTION_VALUE, f"Invalid value for --{param_name}."
         return CliErrorCode.INVALID_OPTION_VALUE, "Invalid command line."
-    if isinstance(exc, click.UsageError):
-        ctx = exc.ctx
-        if ctx is not None and not isinstance(ctx.command, click.Group):
-            return CliErrorCode.UNEXPECTED_ARGUMENT, "Unexpected argument."
+    if isinstance(exc, click.UsageError) or name == "UsageError":
+        ctx = getattr(exc, "ctx", None)
+        command = getattr(ctx, "command", None) if ctx is not None else None
+        if command is not None and not isinstance(command, click.Group):
+            # Typer may vendor Group; treat non-group leaf commands as unexpected args.
+            cmd_type = type(command).__name__
+            if cmd_type not in {"Group", "TyperGroup", "PginspectGroup"} and not isinstance(
+                command, click.Group
+            ):
+                return CliErrorCode.UNEXPECTED_ARGUMENT, "Unexpected argument."
         return CliErrorCode.COMMAND_REQUIRED, "A command is required."
     return CliErrorCode.COMMAND_REQUIRED, "Invalid command line."
 
@@ -270,6 +276,32 @@ def _catalogued_config_message(exc: ValidationError) -> str:
     return "Invalid command line."
 
 
+def _is_exit_exception(exc: BaseException) -> bool:
+    """Click/Typer deliberate exit (``--help``); Typer>=0.17 vendors its own Exit type."""
+    return type(exc).__name__ == "Exit" and hasattr(exc, "exit_code")
+
+
+def _as_usage_error(exc: BaseException) -> click.UsageError | None:
+    """Return a Click-compatible usage error, including Typer-vendored exception types."""
+    if isinstance(exc, click.UsageError):
+        return exc
+    module = type(exc).__module__
+    if "click" not in module or not module.endswith(".exceptions"):
+        return None
+    name = type(exc).__name__
+    if name in {
+        "UsageError",
+        "BadParameter",
+        "NoSuchOption",
+        "MissingParameter",
+        "BadOptionUsage",
+        "BadArgumentUsage",
+    }:
+        # Our classifiers only need type()/param/option_name attributes.
+        return exc  # type: ignore[return-value]
+    return None
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Process wrapper: map usage→4, interrupt→130, fatal→5; else command exit int."""
     args = list(sys.argv[1:] if argv is None else argv)
@@ -278,20 +310,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         with command.make_context("pginspect", args) as context:
             result = command.invoke(context)
-    except click.exceptions.Exit as exc:
-        return int(exc.exit_code)
-    except click.UsageError as exc:
-        _code, message = classify_usage_error(exc)
-        _ = _code
-        click.echo(message, err=True)
-        return 4
-    except PginspectConfigurationError as exc:
-        click.echo(exc.public_message, err=True)
-        return 4
-    except KeyboardInterrupt:
-        return 130
-    except Exception:
-        click.echo(_FATAL_MESSAGE, err=True)
-        return 5
+    except BaseException as exc:
+        if _is_exit_exception(exc):
+            return int(getattr(exc, "exit_code"))
+        usage = _as_usage_error(exc)
+        if usage is not None:
+            _code, message = classify_usage_error(usage)
+            _ = _code
+            click.echo(message, err=True)
+            return 4
+        if isinstance(exc, PginspectConfigurationError):
+            click.echo(exc.public_message, err=True)
+            return 4
+        if isinstance(exc, KeyboardInterrupt):
+            return 130
+        if isinstance(exc, Exception):
+            click.echo(_FATAL_MESSAGE, err=True)
+            return 5
+        raise
 
     return normalize_command_return(result)

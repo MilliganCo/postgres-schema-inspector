@@ -20,7 +20,11 @@ from pginspect.exceptions import (
     PginspectInternalError,
     SessionSafetyError,
 )
-from pginspect.models.enums import ClassificationSource, ExecutionErrorCode, SessionSafetyMisconfigurationCategory
+from pginspect.models.enums import (
+    ClassificationSource,
+    ExecutionErrorCode,
+    SessionSafetyMisconfigurationCategory,
+)
 from pginspect.models.finding import (
     SessionSafetyExpectedState,
     SessionSafetyObservedState,
@@ -224,10 +228,14 @@ class DiagnosticSession:
             self._close_stack()
             raise mapped from None
 
-    def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: Any) -> None:
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: Any
+    ) -> None:
         if self._state is not SessionState.CLOSED:
-            if self._state is SessionState.READY and exc_type is not None and issubclass(
-                exc_type, psycopg.Error
+            if (
+                self._state is SessionState.READY
+                and exc_type is not None
+                and issubclass(exc_type, psycopg.Error)
             ):
                 self._state = SessionState.FAILED
             self._close_stack()

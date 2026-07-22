@@ -488,7 +488,8 @@ def run_connect_test(
         # Ensure connection-category for connect-time failures.
         if error.category is not ExecutionErrorCategory.CONNECTION:
             error = ExecutionError(
-                code=exc.code if exc.code is not ExecutionErrorCode.OPERATIONAL_FAILURE
+                code=exc.code
+                if exc.code is not ExecutionErrorCode.OPERATIONAL_FAILURE
                 else ExecutionErrorCode.CONNECTION_FAILED,
                 category=ExecutionErrorCategory.CONNECTION,
                 message=public_connect_message(

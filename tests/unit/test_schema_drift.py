@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -13,10 +14,6 @@ from pginspect.models.finding import finding_adapter
 from pginspect.models.result import CommandResult, command_result_adapter
 
 ROOT = Path(__file__).resolve().parents[2]
-
-# Ensure scripts/ is importable for the shared exporter helpers.
-import sys
-
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from export_schemas import (  # noqa: E402

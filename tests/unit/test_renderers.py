@@ -302,9 +302,7 @@ def test_full_canary_leakage_json_text_and_text_debug() -> None:
         debug=DebugPayload(
             exception_type="ConnectAuthenticationError",
             causal_chain_types=(),
-            frames=(
-                DebugFrame(module="pginspect.connection", function="_connect", line=10),
-            ),
+            frames=(DebugFrame(module="pginspect.connection", function="_connect", line=10),),
         ),
     )
     # Deliberately attempt to smuggle canaries into titles/summaries that renderers escape.

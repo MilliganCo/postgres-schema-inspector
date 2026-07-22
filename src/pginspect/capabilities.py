@@ -108,7 +108,9 @@ def discover_capabilities(session: DiagnosticSession) -> DiscoveredCapabilities:
     if not database_name or not current_role or not session_user or not server_version:
         raise PginspectInternalError("capability discovery returned empty required identity fields")
     if server_version_num <= 0:
-        raise PginspectInternalError("capability discovery returned non-positive server_version_num")
+        raise PginspectInternalError(
+            "capability discovery returned non-positive server_version_num"
+        )
     if is_superuser_raw is None:
         raise PginspectInternalError("is_superuser must not be NULL")
 

@@ -64,12 +64,11 @@ def escape_terminal_value(value: str) -> str:
 
 def render_text(result: CommandResult) -> str:
     """Render ``result`` as line-oriented English text (no ``Exit: N`` line)."""
-    if isinstance(result, VersionCommandResult) or (
-        hasattr(result, "command") and result.command == "version"
-    ):
+    if isinstance(result, VersionCommandResult):
         return f"pginspect {result.app_version}\n"
-    assert isinstance(result, ConnectTestCommandResult) or result.command == "connect-test"
-    return _render_connect_test(result)  # type: ignore[arg-type]
+    if isinstance(result, ConnectTestCommandResult):
+        return _render_connect_test(result)
+    raise TypeError(f"unsupported CommandResult type: {type(result)!r}")
 
 
 def render_text_debug(result: CommandResult) -> str | None:
@@ -119,15 +118,13 @@ def _render_connect_test(result: ConnectTestCommandResult) -> str:
         support = _VERSION_SUPPORT_LABELS.get(
             context.version_support, context.version_support.value
         )
-        lines.append(
-            f"Server: {escape_terminal_value(context.server_version)} ({support})"
-        )
+        lines.append(f"Server: {escape_terminal_value(context.server_version)} ({support})")
         lines.append(f"In recovery: {'yes' if context.in_recovery else 'no'}")
 
     if misconfigured is not None:
         lines.append("Session safety: MISCONFIGURED")
-        evidence = misconfigured.evidence
-        expected = evidence.expected
+        mis_evidence = misconfigured.evidence
+        expected = mis_evidence.expected
         lines.append(
             "Timeouts: "
             f"statement={expected.statement_timeout_ms}ms "
@@ -135,9 +132,9 @@ def _render_connect_test(result: ConnectTestCommandResult) -> str:
             f"idle_xact={expected.idle_in_transaction_session_timeout_ms}ms"
         )
         lines.append("Write probe: not run")
-        lines.append(f"Category: {evidence.category.value}")
-        if evidence.observed is not None:
-            observed = evidence.observed
+        lines.append(f"Category: {mis_evidence.category.value}")
+        if mis_evidence.observed is not None:
+            observed = mis_evidence.observed
             lines.append(
                 "Expected timeouts: "
                 f"statement={expected.statement_timeout_ms}ms "
@@ -152,12 +149,12 @@ def _render_connect_test(result: ConnectTestCommandResult) -> str:
             )
     elif verified is not None:
         lines.append("Session safety: verified")
-        evidence = verified.evidence
+        verified_evidence = verified.evidence
         lines.append(
             "Timeouts: "
-            f"statement={evidence.statement_timeout_ms}ms "
-            f"lock={evidence.lock_timeout_ms}ms "
-            f"idle_xact={evidence.idle_in_transaction_session_timeout_ms}ms"
+            f"statement={verified_evidence.statement_timeout_ms}ms "
+            f"lock={verified_evidence.lock_timeout_ms}ms "
+            f"idle_xact={verified_evidence.idle_in_transaction_session_timeout_ms}ms"
         )
         lines.append("Write probe: not run")
         # Spec wording: read-only configuration verified; do not claim role cannot write.

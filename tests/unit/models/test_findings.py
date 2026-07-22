@@ -176,7 +176,9 @@ def test_finding_union_round_trip() -> None:
             classification_source=ClassificationSource.SQLSTATE,
             sqlstate="28P01",
         ),
-        remediation=Remediation(summary="Verify the selected libpq service, role and credential source."),
+        remediation=Remediation(
+            summary="Verify the selected libpq service, role and credential source."
+        ),
     )
     adapter = TypeAdapter(Finding)
     parsed = adapter.validate_python(finding.model_dump(mode="python"))

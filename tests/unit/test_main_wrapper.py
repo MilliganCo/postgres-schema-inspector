@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pginspect.cli import main
-from pginspect.connectivity import build_version_result
 from pginspect.models.enums import CommandExitCode
 
 
@@ -37,7 +36,6 @@ def test_keyboard_interrupt_returns_130() -> None:
 
 
 def test_connect_test_returns_result_exit_code(capsys: pytest.CaptureFixture[str]) -> None:
-    result = build_version_result()  # placeholder shape unused
     # Build a fake connect-test result via mock of run_connect_test
     fake = MagicMock()
     fake.exit_code = CommandExitCode.OPERATIONAL_FAILURE
@@ -77,9 +75,10 @@ def test_connect_test_json_debug_leaves_stderr_empty(
 
 def test_fatal_render_returns_5(capsys: pytest.CaptureFixture[str]) -> None:
     with (
-        patch("pginspect.cli.build_version_result", return_value=build_version_result()),
+        patch("pginspect.cli.build_version_result") as build_version,
         patch("pginspect.cli.render_text", side_effect=RuntimeError("boom")),
     ):
+        build_version.return_value = MagicMock(exit_code=0, command="version", app_version="0.1.0")
         assert main(["version"]) == 5
     captured = capsys.readouterr()
     assert captured.out == ""

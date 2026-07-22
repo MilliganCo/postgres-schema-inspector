@@ -80,10 +80,9 @@ class ConnectTestCommandResult(CommandResultBase):
                     f"exit_code {int(self.exit_code)} does not match error category contribution {int(expected)}"
                 )
 
-        failed_findings = [
-            f for f in self.findings if isinstance(f, ConnectionFailedFinding)
-        ]
+        failed_findings = [f for f in self.findings if isinstance(f, ConnectionFailedFinding)]
         if failed_findings:
+            failed = failed_findings[0]
             if len(self.findings) != 1:
                 raise ValueError("connection.failed must be the only finding")
             if self.context is not None:
@@ -94,7 +93,7 @@ class ConnectTestCommandResult(CommandResultBase):
                 raise ValueError("connection.failed requires exit_code=3")
             if self.error is None or self.error.category.value != "connection":
                 raise ValueError("connection.failed requires error.category=connection")
-            if self.error.code.value != self.findings[0].evidence.category:
+            if self.error.code.value != failed.evidence.category:
                 raise ValueError("connection.failed evidence.category must match error.code")
 
         version_ids = {
@@ -116,7 +115,9 @@ class ConnectTestCommandResult(CommandResultBase):
                 raise ValueError("non-null context requires session_safety_verified")
             if len(version_findings) != 1:
                 raise ValueError("non-null context requires exactly one version finding")
-            if version_findings[0].evidence.version_support != self.context.version_support.value:
+            version_finding = version_findings[0]
+            version_support = getattr(version_finding.evidence, "version_support", None)
+            if version_support != self.context.version_support.value:
                 raise ValueError("version finding evidence must match context.version_support")
 
         # silence unused import warning for Severity in some paths
