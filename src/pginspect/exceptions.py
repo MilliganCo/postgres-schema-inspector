@@ -18,6 +18,10 @@ class PginspectError(Exception):
 class PginspectConfigurationError(PginspectError):
     """Invalid configuration that must not attempt a connection."""
 
+    def __init__(self, public_message: str) -> None:
+        self.public_message = public_message
+        super().__init__(public_message)
+
 
 class PginspectConnectError(PginspectError):
     """Expected connect-time failure mapped from Psycopg/libpq signals."""
