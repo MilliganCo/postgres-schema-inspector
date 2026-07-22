@@ -23,6 +23,10 @@ from pginspect.models.enums import (
     VersionSupportStatus,
 )
 from pginspect.models.execution_error import DebugFrame, DebugPayload, ExecutionError
+from pginspect.models.finding import (
+    Finding,
+    finding_adapter,
+)
 
 __all__ = [
     "ClassificationSource",
@@ -37,6 +41,7 @@ __all__ = [
     "ExecutionErrorCategory",
     "ExecutionErrorCode",
     "ExtensionAvailability",
+    "Finding",
     "FindingId",
     "FindingStatus",
     "KnownExtensionSnapshot",
@@ -44,4 +49,5 @@ __all__ = [
     "SessionSafetyMisconfigurationCategory",
     "Severity",
     "VersionSupportStatus",
+    "finding_adapter",
 ]
