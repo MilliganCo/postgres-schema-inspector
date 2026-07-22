@@ -92,6 +92,17 @@ class TransportMetadata:
     tls_used: bool | None
 
 
+def observe_transport_metadata(connection: Connection[Any]) -> TransportMetadata:
+    """Observe TLS usage without reading password/DSN/get_parameters/repr surfaces."""
+    try:
+        pgconn = connection.pgconn
+        if pgconn is None:
+            return TransportMetadata(tls_used=None)
+        return TransportMetadata(tls_used=bool(pgconn.ssl_in_use))
+    except Exception:
+        return TransportMetadata(tls_used=None)
+
+
 def _expected_state(config: SessionSafetyConfig) -> SessionSafetyExpectedState:
     return SessionSafetyExpectedState(
         default_transaction_read_only=True,
@@ -119,27 +130,21 @@ def _map_session_sql_error(exc: psycopg.Error) -> Exception:
     frames = build_safe_debug_frames(exc)
     sqlstate = getattr(exc, "sqlstate", None)
     sqlstate_str = sqlstate if isinstance(sqlstate, str) else None
-    common = {
-        "sqlstate": sqlstate_str,
-        "driver_exception_type": type(exc).__name__,
-        "debug_frames": frames,
-        "classification_source": (
-            ClassificationSource.SQLSTATE
-            if sqlstate_str
-            else ClassificationSource.FALLBACK_OTHER
-        ),
-    }
+    driver_type = type(exc).__name__
     if sqlstate_str and sqlstate_str.startswith("08"):
         return ConnectNetworkError(
             code=ExecutionErrorCode.NETWORK_UNREACHABLE,
-            **common,
+            classification_source=ClassificationSource.SQLSTATE,
+            sqlstate=sqlstate_str,
+            driver_exception_type=driver_type,
+            debug_frames=frames,
         )
     if sqlstate_str == "57014":
         return ConnectFailedError(
             code=ExecutionErrorCode.OPERATIONAL_FAILURE,
             classification_source=ClassificationSource.SQLSTATE,
             sqlstate=sqlstate_str,
-            driver_exception_type=type(exc).__name__,
+            driver_exception_type=driver_type,
             debug_frames=frames,
         )
     if isinstance(exc, psycopg.OperationalError):
@@ -147,14 +152,14 @@ def _map_session_sql_error(exc: psycopg.Error) -> Exception:
             code=ExecutionErrorCode.OPERATIONAL_FAILURE,
             classification_source=ClassificationSource.FALLBACK_OTHER,
             sqlstate=sqlstate_str,
-            driver_exception_type=type(exc).__name__,
+            driver_exception_type=driver_type,
             debug_frames=frames,
         )
     # Programming / unexpected SQL shape → internal
     return PginspectInternalError(
         "diagnostic session SQL failed",
         debug_frames=frames,
-        driver_exception_type=type(exc).__name__,
+        driver_exception_type=driver_type,
     )
 
 
@@ -181,13 +186,7 @@ class DiagnosticSession:
 
     def transport_metadata(self) -> TransportMetadata:
         """Observe TLS usage without reading password/DSN/get_parameters/repr surfaces."""
-        try:
-            pgconn = self._connection.pgconn
-            if pgconn is None:
-                return TransportMetadata(tls_used=None)
-            return TransportMetadata(tls_used=bool(pgconn.ssl_in_use))
-        except Exception:
-            return TransportMetadata(tls_used=None)
+        return observe_transport_metadata(self._connection)
 
     def __enter__(self) -> DiagnosticSession:
         if self._entered or self._state is not SessionState.NEW:

@@ -90,7 +90,10 @@ def discover_capabilities(session: DiagnosticSession) -> DiscoveredCapabilities:
         current_role = str(row["current_role"] or "")
         session_user = str(row["session_user"] or "")
         server_version = str(row["server_version"] or "")
-        server_version_num = int(row["server_version_num"])  # type: ignore[arg-type]
+        version_num_raw = row["server_version_num"]
+        if not isinstance(version_num_raw, int):
+            version_num_raw = int(str(version_num_raw))
+        server_version_num = version_num_raw
         in_recovery = bool(row["in_recovery"])
         can_monitor = bool(row["can_use_pg_monitor"])
         can_stats = bool(row["can_use_pg_read_all_stats"])

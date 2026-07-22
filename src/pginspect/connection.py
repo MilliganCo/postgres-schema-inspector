@@ -140,7 +140,8 @@ def _connect(config: ConnectionConfig) -> Connection[Any]:
     kwargs = build_connect_kwargs(config)
     mapped: PginspectConnectError | PginspectInternalError | None = None
     try:
-        return psycopg.connect(autocommit=True, **kwargs)
+        # Libpq kwargs are intentionally a closed allowlist of str|int values.
+        return psycopg.connect(autocommit=True, **kwargs)  # type: ignore[arg-type]
     except ConnectionTimeout as exc:
         mapped = _map_timeout(exc)
     except psycopg.Error as exc:
