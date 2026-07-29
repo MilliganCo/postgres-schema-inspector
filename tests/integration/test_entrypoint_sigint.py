@@ -109,9 +109,7 @@ def test_entrypoint_sigint_exits_130_without_json(stall_port: int) -> None:
         if proc.poll() is None:
             proc.kill()
 
-    assert proc.returncode == 130, (
-        f"expected exit 130, got {proc.returncode}; stderr={stderr_b!r}"
-    )
+    assert proc.returncode == 130, f"expected exit 130, got {proc.returncode}; stderr={stderr_b!r}"
     stdout = stdout_b.decode("utf-8", errors="replace")
     assert stdout.strip() == "", f"stdout must be empty on interrupt, got {stdout!r}"
     assert '"command"' not in stdout

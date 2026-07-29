@@ -86,8 +86,7 @@ def _apply_probe_fixture(pg_dsn: str) -> None:
         if expected_major:
             major = version_num // 10000
             assert major == int(expected_major), (
-                f"server_version_num={version_num} major={major} "
-                f"!= expected {expected_major}"
+                f"server_version_num={version_num} major={major} != expected {expected_major}"
             )
 
 

@@ -21,11 +21,7 @@ from pginspect.session import DiagnosticSession
 pytestmark = pytest.mark.integration
 
 _SCHEMA = (
-    Path(__file__).resolve().parents[2]
-    / "docs"
-    / "schemas"
-    / "command-result"
-    / "1.0.schema.json"
+    Path(__file__).resolve().parents[2] / "docs" / "schemas" / "command-result" / "1.0.schema.json"
 )
 _command_result_adapter: TypeAdapter[CommandResult] = TypeAdapter(CommandResult)
 
@@ -177,11 +173,7 @@ def test_libpq_service_precedence_asserts_actual_database(
     dbname = str(pg_endpoint.get("dbname", "postgres"))
     service_file = tmp_path / "pg_service.conf"
     service_file.write_text(
-        f"[pginspect_svc]\n"
-        f"host={host}\n"
-        f"port={port}\n"
-        f"dbname={dbname}\n"
-        f"user=pginspect_test\n",
+        f"[pginspect_svc]\nhost={host}\nport={port}\ndbname={dbname}\nuser=pginspect_test\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("PGSERVICEFILE", str(service_file))
