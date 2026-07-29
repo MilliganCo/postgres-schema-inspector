@@ -3,26 +3,28 @@
 Local engineering for Spec §§1–14 is implemented (package, CLI, models, unit tests,
 workflow definitions). That is **Foundation code-complete**.
 
-True **`FOUNDATION_COMPLETE`** still requires closed **human** security gates below
-(even though private remote + green GHA PG 14–18 are now in place). This document
-tracks that gap. It does **not** authorize visibility changes or
-`PUBLICATION_APPROVED`.
+True **`FOUNDATION_COMPLETE`** is **blocked** while **A-10** remains open. This
+document records owner decisions from the Foundation close attestation packet.
+It does **not** authorize visibility changes or `PUBLICATION_APPROVED`.
 
-**Date (UTC):** 2026-07-22 (updated 2026-07-29)  
+**Date (UTC):** 2026-07-29  
 **Repo:** `MilliganCo/postgres-schema-inspector`  
 **Visibility:** **private** (A-18) — do not flip to public from this checklist.  
-**Verified HEAD (local = origin/main):** `fd1e7d3162d07a5901341e8af92ca037f3f1e138`
+**Verified engineering HEAD (A-11 review through):** `483b0ce39e3046785f5c2fd5eadaa07c00e82774`  
+**Checklist documentation commit:** this file on private `main` (SHA = current `origin/main` after push)
 
 ## Repository state notes
 
 | Fact | Status |
 | --- | --- |
 | GitHub remote | **Created** — `https://github.com/MilliganCo/postgres-schema-inspector.git` |
-| Visibility | **private** (confirmed via `gh api`; `has_pages=false`; no releases) |
-| Green GHA on HEAD | **Yes** — unit/lint/schema/integration(14–18)/safety(14–18)/coverage/latest-stack/secret-scan |
-| `PUBLICATION_APPROVED` | **Not done** — separate gate |
-| Legacy archive / description | Human remaining (A-08, A-09) |
-| Credential rotation attestation | Human remaining (A-10); engineering path used zero legacy secrets |
+| Visibility | **private** (A-18 approved; keep private) |
+| Green GHA on reviewed HEAD | **Yes** through `483b0ce39e3046785f5c2fd5eadaa07c00e82774` — unit/lint/schema/integration(14–18)/safety(14–18)/coverage/latest-stack/secret-scan |
+| `PUBLICATION_APPROVED` | **false** (A-19 approved as prepared-but-unsigned) |
+| Legacy archive | **Not archived** — A-08 timed exception |
+| Legacy description | **Updated** (A-09) |
+| Credential rotation attestation | **Open** (A-10) — blocks `FOUNDATION_COMPLETE` |
+| Pre-first-push review | **Exception recorded** (A-11) — missed procedural gate |
 
 ## Automated (CI / tests)
 
@@ -40,22 +42,85 @@ Covered by workflows and/or pytest as mapped in
 - [x] Gitleaks full-history (`secret-scan.yml`) — A-12
 - [x] Default `pytest` = `tests/unit` only (F-01)
 - [x] G-* non-presence enforced by boundary tests
-- [x] Private remote + first push after local secret review
+- [x] Private remote + push after local secret review
 
-## Human remaining (required for true FOUNDATION_COMPLETE sign-off)
+## Human gates (owner decisions recorded 2026-07-29)
 
-| Gate ID | Item | Notes |
+| Gate ID | Decision | Notes |
 | --- | --- | --- |
-| A-06 | Independent-history provenance attested by owner | Sign after reviewing root commit / no legacy grafts |
-| A-07 | Legacy repository remains private | Owner GitHub check |
-| A-08 | Legacy archived **or** named exception + follow-up | Owner decision — **do not archive without explicit instruction** |
-| A-09 | Legacy description states superseded | Owner updates legacy repo |
-| A-10 | Credentials rotation confirmed (safe attestation only) | Ops note outside public tree |
-| A-11 | Staged content reviewed before first push | Owner confirms review of pushed tree |
-| A-13 | TruffleHog full-history scan | Local scan done; canary DSN false positives documented — owner accepts or adds minimal exclude |
-| A-17 | README skim for host/user/password literals | Spot-check after Foundation README |
-| A-18 | Visibility remains private | Confirmed private after push |
-| A-19 | Publication checklist prepared (unsigned) | This file + pre_publication_gate in design §2 |
+| A-06 | **approved** | Independent-history provenance attested (see attestation below) |
+| A-07 | **approved** | Legacy repository remains private |
+| A-08 | **timed_exception** | Do **not** archive; see exception record below |
+| A-09 | **authorized / applied** | Legacy description updated to proposed superseded text |
+| A-10 | **open** | Rejected for now — no factual owner attestation of rotation/revocation |
+| A-11 | **exception** | Pre-first-push review was not completed; see exception record below |
+| A-13 | **accepted** | Intentional test canaries; no scanner exclude |
+| A-17 | **approved** | README/SECURITY skim |
+| A-18 | **approved** | Keep new repository private; do not change visibility |
+| A-19 | **approved** | Publication checklist prepared but unsigned; `PUBLICATION_APPROVED` remains false |
+
+### A-06 owner attestation
+
+> I attest that postgres-schema-inspector was created as a greenfield repository
+> and that no Git history from database-count-and-truncate was imported,
+> grafted, merged, mirrored, or rewritten into it.
+
+### A-08 timed exception (legacy disposition)
+
+- **Decision:** `timed_exception` — do **not** archive the legacy repository under
+  this decision.
+- **Reason:** Credential rotation has not yet received a factual owner
+  attestation. The legacy repository must remain available privately until A-10
+  is resolved and a separate archive authorization is issued.
+- **Owner:** MilliganCo project owner
+- **Compensating controls:**
+  - repository remains PRIVATE
+  - no new development is permitted
+  - description must state that the repository is superseded
+  - no releases, packages, Pages, deployments, or active workflows
+  - legacy history must never be imported into postgres-schema-inspector
+- **next_review_date:** 2026-08-12
+- **exception_expires:** 2026-08-29
+
+### A-09 legacy description (applied)
+
+```text
+Superseded by MilliganCo/postgres-schema-inspector.
+Retained for historical reference only. No new development.
+```
+
+### A-10 credential rotation (open)
+
+- **Decision:** rejected for now — keep **open**.
+- **Reason:** No factual owner attestation confirming revocation or rotation has
+  been supplied. Do not infer credential rotation from repository scans.
+- **Required future attestation:**
+
+> I attest that all credentials exposed in the legacy repository have been
+> revoked or rotated and that the previous values are no longer valid.
+
+### A-11 pre-first-push review (exception)
+
+- **Status:** not completed before first push — documented exception.
+- **Exception record:** The required staged-content review was not completed
+  before the first push. The repository history and tracked content were
+  subsequently reviewed through commit
+  `483b0ce39e3046785f5c2fd5eadaa07c00e82774`.
+- **Compensating evidence:**
+  - repository remained private
+  - full-history Gitleaks scan passed
+  - TruffleHog findings were limited to reviewed test canaries
+  - current tracked tree and complete new history were reviewed
+  - no unintended legacy data or credentials were found
+  - publication remains unapproved
+- This exception records a **missed procedural gate**. It must **not** be
+  rewritten as a claim that pre-first-push review occurred.
+
+### A-13 TruffleHog canaries
+
+> Accepted as intentional test canaries, not credentials.
+> No scanner exclusion added.
+> Exact files and matched values reviewed.
 
 ## Explicitly out of scope here
 
@@ -64,11 +129,13 @@ Covered by workflows and/or pytest as mapped in
 - [ ] PyPI / TestPyPI / GitHub Release
 - [ ] SBOM publication / announcements
 - [ ] `pginspect impact` implementation plan / product code
+- [ ] Archiving `MilliganCo/database-count-and-truncate` (requires separate
+      authorization after A-10)
 
 ## Definition reminder
 
 > `FOUNDATION_COMPLETE` = all atomic criteria A–G satisfied; repo remains private.  
 > `PUBLICATION_APPROVED` = FOUNDATION_COMPLETE + pre_publication_gate + human sign-off.
 
-Owner should tick human gates above when evidence exists. Automated remote/CI
-portion of Foundation close is ready for that review.
+**Current blocker for `FOUNDATION_COMPLETE`:** A-10 (credential rotation
+attestation). Status remains **Foundation code-complete**.
