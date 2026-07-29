@@ -40,7 +40,7 @@ def test_happy_connect_test_json_schema_valid_exit_0(
     assert result.error is None
     ids = [f.id for f in result.findings]
     assert FindingId.CONNECTION_ESTABLISHED in ids
-    assert FindingId.SESSION_SAFETY_VERIFIED in ids
+    assert FindingId.CONNECTION_SESSION_SAFETY_VERIFIED in ids
     payload = json.loads(render_json(result))
     jsonschema.validate(instance=payload, schema=_load_schema())
     round_trip = _command_result_adapter.validate_python(payload)
