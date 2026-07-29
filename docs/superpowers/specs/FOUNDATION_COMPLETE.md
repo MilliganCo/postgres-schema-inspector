@@ -3,21 +3,23 @@
 Local engineering for Spec §§1–14 is implemented (package, CLI, models, unit tests,
 workflow definitions). That is **Foundation code-complete**.
 
-True **`FOUNDATION_COMPLETE`** still requires: private GitHub remote + first push
-after secret scans, green GHA on PostgreSQL 14–18, and closed human security gates.
-This document tracks that gap. It does **not** authorize visibility changes or
+True **`FOUNDATION_COMPLETE`** still requires closed **human** security gates below
+(even though private remote + green GHA PG 14–18 are now in place). This document
+tracks that gap. It does **not** authorize visibility changes or
 `PUBLICATION_APPROVED`.
 
-**Date (UTC):** 2026-07-22 (updated 2026-07-23)  
-**Repo:** local greenfield `postgres-schema-inspector` (intended `MilliganCo/postgres-schema-inspector`)  
-**Visibility:** remains **private** (A-18) — do not flip to public from this checklist.
+**Date (UTC):** 2026-07-22 (updated 2026-07-29)  
+**Repo:** `MilliganCo/postgres-schema-inspector`  
+**Visibility:** **private** (A-18) — do not flip to public from this checklist.  
+**Verified HEAD (local = origin/main):** `fd1e7d3162d07a5901341e8af92ca037f3f1e138`
 
 ## Repository state notes
 
 | Fact | Status |
 | --- | --- |
-| GitHub remote | **May not exist yet** — do not push unless `origin` is configured and private |
-| Visibility | Private (required at FOUNDATION_COMPLETE) |
+| GitHub remote | **Created** — `https://github.com/MilliganCo/postgres-schema-inspector.git` |
+| Visibility | **private** (confirmed via `gh api`; `has_pages=false`; no releases) |
+| Green GHA on HEAD | **Yes** — unit/lint/schema/integration(14–18)/safety(14–18)/coverage/latest-stack/secret-scan |
 | `PUBLICATION_APPROVED` | **Not done** — separate gate |
 | Legacy archive / description | Human remaining (A-08, A-09) |
 | Credential rotation attestation | Human remaining (A-10); engineering path used zero legacy secrets |
@@ -38,6 +40,7 @@ Covered by workflows and/or pytest as mapped in
 - [x] Gitleaks full-history (`secret-scan.yml`) — A-12
 - [x] Default `pytest` = `tests/unit` only (F-01)
 - [x] G-* non-presence enforced by boundary tests
+- [x] Private remote + first push after local secret review
 
 ## Human remaining (required for true FOUNDATION_COMPLETE sign-off)
 
@@ -45,18 +48,14 @@ Covered by workflows and/or pytest as mapped in
 | --- | --- | --- |
 | A-06 | Independent-history provenance attested by owner | Sign after reviewing root commit / no legacy grafts |
 | A-07 | Legacy repository remains private | Owner GitHub check |
-| A-08 | Legacy archived **or** named exception + follow-up | Owner decision |
+| A-08 | Legacy archived **or** named exception + follow-up | Owner decision — **do not archive without explicit instruction** |
 | A-09 | Legacy description states superseded | Owner updates legacy repo |
 | A-10 | Credentials rotation confirmed (safe attestation only) | Ops note outside public tree |
-| A-11 | Staged content reviewed before first push | Before first remote push |
-| A-13 | TruffleHog full-history scan | Named ops gate until pinned workflow added |
+| A-11 | Staged content reviewed before first push | Owner confirms review of pushed tree |
+| A-13 | TruffleHog full-history scan | Local scan done; canary DSN false positives documented — owner accepts or adds minimal exclude |
 | A-17 | README skim for host/user/password literals | Spot-check after Foundation README |
-| A-18 | Visibility remains private | Confirmed; no flip |
+| A-18 | Visibility remains private | Confirmed private after push |
 | A-19 | Publication checklist prepared (unsigned) | This file + pre_publication_gate in design §2 |
-| — | Create private GitHub remote if missing | `gh repo create … --private` then `git push -u` |
-| — | Push `main` when remote exists | Do **not** push if no remote / wrong visibility |
-| — | Archive or contain legacy project | Out of band |
-| — | Run GHA matrices on GitHub | Local Docker may be unavailable; CI is source of truth for F-02…F-05 |
 
 ## Explicitly out of scope here
 
@@ -64,11 +63,12 @@ Covered by workflows and/or pytest as mapped in
 - [ ] Visibility → public
 - [ ] PyPI / TestPyPI / GitHub Release
 - [ ] SBOM publication / announcements
+- [ ] `pginspect impact` implementation plan / product code
 
 ## Definition reminder
 
 > `FOUNDATION_COMPLETE` = all atomic criteria A–G satisfied; repo remains private.  
 > `PUBLICATION_APPROVED` = FOUNDATION_COMPLETE + pre_publication_gate + human sign-off.
 
-Owner should tick human gates above when evidence exists, then treat engineering
-Foundation as closed for product scope §§1–13.
+Owner should tick human gates above when evidence exists. Automated remote/CI
+portion of Foundation close is ready for that review.
