@@ -1,10 +1,14 @@
-# FOUNDATION_COMPLETE checklist
+# Foundation status: **code-complete** (not yet `FOUNDATION_COMPLETE`)
 
-Engineering record for Spec §13 `FOUNDATION_COMPLETE`. This document marks what is
-**automated** vs **human remaining**. It does **not** authorize visibility changes
-or `PUBLICATION_APPROVED`.
+Local engineering for Spec §§1–14 is implemented (package, CLI, models, unit tests,
+workflow definitions). That is **Foundation code-complete**.
 
-**Date (UTC):** 2026-07-22  
+True **`FOUNDATION_COMPLETE`** still requires: private GitHub remote + first push
+after secret scans, green GHA on PostgreSQL 14–18, and closed human security gates.
+This document tracks that gap. It does **not** authorize visibility changes or
+`PUBLICATION_APPROVED`.
+
+**Date (UTC):** 2026-07-22 (updated 2026-07-23)  
 **Repo:** local greenfield `postgres-schema-inspector` (intended `MilliganCo/postgres-schema-inspector`)  
 **Visibility:** remains **private** (A-18) — do not flip to public from this checklist.
 
