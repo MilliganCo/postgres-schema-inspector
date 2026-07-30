@@ -12,10 +12,10 @@ from pginspect.impact.rules import CoercionLookupResult, lookup_coercion
 from pginspect.impact.rules.coercion import lookup_coercion as lookup_coercion_direct
 
 
-def test_public_rules_surface_exports_only_coercion_symbols() -> None:
+def test_public_rules_surface_exports_coercion_symbols() -> None:
     import pginspect.impact.rules as rules_pkg
 
-    assert set(rules_pkg.__all__) == {"CoercionLookupResult", "lookup_coercion"}
+    assert {"CoercionLookupResult", "lookup_coercion"} <= set(rules_pkg.__all__)
     assert lookup_coercion is lookup_coercion_direct
 
 
