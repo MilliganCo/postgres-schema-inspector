@@ -80,15 +80,58 @@ def test_renderers_do_not_import_connection_session_connectivity() -> None:
         "session",
         "connectivity",
     }
-    renderers_root = SRC_ROOT / "renderers"
-    for path in _iter_python_files(renderers_root):
+    for renderers_root in (SRC_ROOT / "renderers", SRC_ROOT / "impact" / "renderers"):
+        if not renderers_root.is_dir():
+            continue
+        for path in _iter_python_files(renderers_root):
+            imported = _imported_modules(_read_tree(path))
+            bad = imported & forbidden_roots
+            assert not bad, f"{path.name} imports {bad}"
+            for name in imported:
+                assert not name.startswith("pginspect.connection")
+                assert not name.startswith("pginspect.session")
+                assert not name.startswith("pginspect.connectivity")
+
+
+def test_impact_package_does_not_import_psycopg() -> None:
+    impact_root = SRC_ROOT / "impact"
+    offenders: list[str] = []
+    for path in _iter_python_files(impact_root):
         imported = _imported_modules(_read_tree(path))
-        bad = imported & forbidden_roots
-        assert not bad, f"{path.name} imports {bad}"
-        for name in imported:
-            assert not name.startswith("pginspect.connection")
-            assert not name.startswith("pginspect.session")
-            assert not name.startswith("pginspect.connectivity")
+        if "psycopg" in imported or any(n.startswith("psycopg.") for n in imported):
+            offenders.append(_module_name(path))
+    assert offenders == [], f"psycopg imported under impact/: {offenders}"
+
+
+def test_impact_cli_does_not_open_or_stat_migration_path() -> None:
+    """Typer may receive Path; only impact.input may open/stat/read it."""
+    path = SRC_ROOT / "impact" / "cli.py"
+    source = path.read_text(encoding="utf-8")
+    tree = _read_tree(path)
+    forbidden_attrs = {"open", "read_text", "read_bytes", "stat", "exists", "is_file", "is_dir"}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and node.attr in forbidden_attrs:
+            # Allow importing Path type itself; forbid Path I/O methods in this module.
+            raise AssertionError(f"impact.cli uses Path I/O attribute .{node.attr}")
+    assert "Path.open" not in source
+    assert ".exists(" not in source
+    assert ".stat(" not in source
+
+
+def test_no_sql_constants_in_cli_or_renderers() -> None:
+    targets = [
+        SRC_ROOT / "cli.py",
+        SRC_ROOT / "impact" / "cli.py",
+        *(_iter_python_files(SRC_ROOT / "renderers")),
+        *(_iter_python_files(SRC_ROOT / "impact" / "renderers")),
+    ]
+    sql_markers = ("SELECT ", "INSERT ", "UPDATE ", "DELETE ", "set_config(", "FROM pg_")
+    for path in targets:
+        if not path.exists():
+            continue
+        source = path.read_text(encoding="utf-8")
+        for marker in sql_markers:
+            assert marker not in source, f"{path} contains SQL marker {marker!r}"
 
 
 def test_models_import_no_io_typer_rich_or_psycopg() -> None:
@@ -151,15 +194,6 @@ def test_no_production_module_reads_pgpassword_or_pgpassfile() -> None:
         if 'environ["PGPASSWORD"]' in source or "environ['PGPASSWORD']" in source:
             offenders.append(_module_name(path))
     assert offenders == [], f"PGPASSWORD/PGPASSFILE read in: {sorted(set(offenders))}"
-
-
-def test_no_sql_constants_in_cli_or_renderers() -> None:
-    targets = [SRC_ROOT / "cli.py", *(_iter_python_files(SRC_ROOT / "renderers"))]
-    sql_markers = ("SELECT ", "INSERT ", "UPDATE ", "DELETE ", "set_config(", "FROM pg_")
-    for path in targets:
-        source = path.read_text(encoding="utf-8")
-        for marker in sql_markers:
-            assert marker not in source, f"{path} contains SQL marker {marker!r}"
 
 
 def test_absent_deferred_packages_and_modules() -> None:

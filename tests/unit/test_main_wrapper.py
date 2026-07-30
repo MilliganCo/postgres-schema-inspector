@@ -27,12 +27,12 @@ def test_version_json_returns_0(capsys: pytest.CaptureFixture[str]) -> None:
     assert captured.err == ""
 
 
-def test_keyboard_interrupt_returns_130() -> None:
+def test_keyboard_interrupt_during_impact_returns_130() -> None:
     with patch("pginspect.cli.get_command") as get_command:
         command = MagicMock()
         get_command.return_value = command
         command.make_context.side_effect = KeyboardInterrupt()
-        assert main(["version"]) == 130
+        assert main(["impact", "mig.sql"]) == 130
 
 
 def test_connect_test_returns_result_exit_code(capsys: pytest.CaptureFixture[str]) -> None:

@@ -23,6 +23,7 @@ from pginspect.config import (
 )
 from pginspect.connectivity import build_version_result, run_connect_test
 from pginspect.exceptions import PginspectConfigurationError
+from pginspect.impact.cli import register_impact_command
 from pginspect.renderers import render_json, render_text, render_text_debug
 
 _FATAL_MESSAGE = "pginspect failed due to an internal error."
@@ -77,6 +78,8 @@ app = typer.Typer(
         "help_option_names": ["--help"],
     },
 )
+
+register_impact_command(app)
 
 OutputFormatOption = Annotated[
     OutputFormat,
