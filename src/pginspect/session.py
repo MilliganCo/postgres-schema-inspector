@@ -217,6 +217,78 @@ def _as_keyword_categories(value: object) -> Mapping[str, str]:
     raise PginspectInternalError("impact profile field 'keyword_categories' has unexpected type")
 
 
+_EXPECTED_IMPACT_ISOLATION = "repeatable read"
+_HARDENED_SEARCH_PATH: tuple[str, ...] = ("pg_catalog",)
+
+
+def _normalize_isolation(value: object) -> str:
+    """PostgreSQL reports isolation as free-form text; compare case/space-insensitively."""
+    return " ".join(str(value).strip().lower().split())
+
+
+def _verify_impact_safety_row(
+    row: Mapping[str, object],
+    config: SessionSafetyConfig,
+) -> None:
+    """Reject an impact session whose hardened state was not actually observed.
+
+    Runs after ``impact.harden_search_path`` and before
+    ``impact.preflight_reads``: every mismatch aborts the timeline through the
+    Foundation ``SessionSafetyError`` / ``VERIFICATION_MISMATCH`` mechanism, so
+    no catalog read is ever issued against an unverified session.
+    """
+    expected = _expected_state(config)
+    try:
+        transaction_read_only = bool(row["transaction_read_only"])
+        isolation = _normalize_isolation(row["transaction_isolation"])
+        statement_ms = _as_int(row["statement_timeout_ms"], "statement_timeout_ms")
+        lock_ms = _as_int(row["lock_timeout_ms"], "lock_timeout_ms")
+        idle_ms = _as_int(
+            row["idle_in_transaction_session_timeout_ms"],
+            "idle_in_transaction_session_timeout_ms",
+        )
+        effective_search_path = _as_tuple_str(row["effective_search_path"], "effective_search_path")
+    except KeyError as exc:
+        raise PginspectInternalError(
+            "impact safety verification returned unexpected shape",
+            debug_frames=build_safe_debug_frames(exc),
+        ) from None
+
+    search_path_raw = row.get("search_path_raw")
+    search_path_raw_ok = (
+        search_path_raw is None or str(search_path_raw).strip() == _HARDENED_SEARCH_PATH[0]
+    )
+
+    # The impact profile scopes read-only to the transaction (BEGIN READ ONLY),
+    # so `transaction_read_only` is the authoritative read-only observation for
+    # both fields of the Foundation observed-state contract.
+    observed = SessionSafetyObservedState(
+        default_transaction_read_only=transaction_read_only,
+        transaction_read_only=transaction_read_only,
+        statement_timeout_ms=statement_ms,
+        lock_timeout_ms=lock_ms,
+        idle_in_transaction_session_timeout_ms=idle_ms,
+        search_path=effective_search_path,
+    )
+
+    matches = (
+        transaction_read_only is True
+        and isolation == _EXPECTED_IMPACT_ISOLATION
+        and effective_search_path == _HARDENED_SEARCH_PATH
+        and search_path_raw_ok
+        and statement_ms == expected.statement_timeout_ms
+        and lock_ms == expected.lock_timeout_ms
+        and idle_ms == expected.idle_in_transaction_session_timeout_ms
+    )
+    if not matches:
+        raise SessionSafetyError(
+            category=SessionSafetyMisconfigurationCategory.VERIFICATION_MISMATCH,
+            expected=expected,
+            observed=observed,
+            sqlstate=None,
+        )
+
+
 def _build_resolution_context(
     resolution_row: Mapping[str, object],
     preflight_row: Mapping[str, object],
@@ -557,7 +629,9 @@ class DiagnosticSession:
            ``set_config(..., true)`` with bound string parameters only.
         4. ``impact.capture_resolution_context`` — pre-harden path/schemas.
         5. ``impact.harden_search_path`` — ``SET LOCAL search_path = pg_catalog``.
-        6. ``impact.verify_safety`` — verify RO/path/timeouts took effect.
+        6. ``impact.verify_safety`` — RO scope, isolation, effective
+           search_path and timeouts must match the hardened expectation; any
+           mismatch raises ``SessionSafetyError`` and step 7 never runs.
         7. ``impact.preflight_reads`` — version/GUC/encoding/isolation/keywords.
 
         This is a distinct profile from the connect-test establish/verify
@@ -591,7 +665,12 @@ class DiagnosticSession:
 
             self._run_impact_query(IMPACT_QUERY_REGISTRY["impact.harden_search_path"], (), recorder)
 
-            self._run_impact_query(IMPACT_QUERY_REGISTRY["impact.verify_safety"], (), recorder)
+            verify_row = self._run_impact_query(
+                IMPACT_QUERY_REGISTRY["impact.verify_safety"], (), recorder
+            )
+            if verify_row is None:
+                raise PginspectInternalError("impact safety verification returned no row")
+            _verify_impact_safety_row(verify_row, self._config)
 
             preflight_row = self._run_impact_query(
                 IMPACT_QUERY_REGISTRY["impact.preflight_reads"], (), recorder
