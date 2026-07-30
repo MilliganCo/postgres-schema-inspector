@@ -23,7 +23,15 @@ from pginspect.exceptions import (
 )
 from pginspect.impact.models.result import ImpactConnectionContext
 from pginspect.impact.preflight import ResolutionContext
-from pginspect.impact.queries import IMPACT_QUERY_REGISTRY, QuerySpec
+from pginspect.impact.queries import QuerySpec
+from pginspect.impact.query_exec import (
+    FetchMode,
+    QueryExecutionEvent,
+    QueryRecorder,
+    SessionQueryExecutor,
+    execute_allowlisted,
+)
+from pginspect.impact.query_rows import PreflightRow, ResolutionCaptureRow, SafetyVerifyRow
 from pginspect.models.enums import (
     ClassificationSource,
     ExecutionErrorCode,
@@ -36,7 +44,19 @@ from pginspect.models.finding import (
 )
 from pginspect.redaction import build_safe_debug_frames
 
-ImpactQueryRecorder = Callable[[str, LiteralString, tuple[Any, ...], str], None]
+ImpactQueryRecorder = Callable[[str, str, tuple[Any, ...], str], None]
+
+
+def _adapt_impact_recorder(recorder: ImpactQueryRecorder | None) -> QueryRecorder | None:
+    """Bridge the positional impact-timeline recorder onto `QueryExecutionEvent`."""
+    if recorder is None:
+        return None
+
+    def _forward(event: QueryExecutionEvent) -> None:
+        recorder(event.query_id, event.sql_text, event.bound_parameters, event.command_kind)
+
+    return _forward
+
 
 _ESTABLISH_SQL: LiteralString = """
 SELECT
@@ -182,41 +202,6 @@ def _map_session_sql_error(exc: psycopg.Error) -> Exception:
     )
 
 
-def _as_str(value: object, field: str) -> str:
-    if not isinstance(value, str):
-        raise PginspectInternalError(f"impact profile field {field!r} has unexpected type")
-    return value
-
-
-def _as_optional_str(value: object) -> str | None:
-    return str(value) if value is not None else None
-
-
-def _as_tuple_str(value: object, field: str) -> tuple[str, ...]:
-    if isinstance(value, (list, tuple)):
-        return tuple(str(item) for item in value)
-    raise PginspectInternalError(f"impact profile field {field!r} has unexpected type")
-
-
-def _as_int(value: object, field: str) -> int:
-    if isinstance(value, bool):
-        raise PginspectInternalError(f"impact profile field {field!r} has unexpected type")
-    if isinstance(value, int):
-        return value
-    try:
-        return int(str(value))
-    except (TypeError, ValueError):
-        raise PginspectInternalError(
-            f"impact profile field {field!r} has unexpected type"
-        ) from None
-
-
-def _as_keyword_categories(value: object) -> Mapping[str, str]:
-    if isinstance(value, Mapping):
-        return {str(word): str(catcode) for word, catcode in value.items()}
-    raise PginspectInternalError("impact profile field 'keyword_categories' has unexpected type")
-
-
 _EXPECTED_IMPACT_ISOLATION = "repeatable read"
 _HARDENED_SEARCH_PATH: tuple[str, ...] = ("pg_catalog",)
 
@@ -226,10 +211,7 @@ def _normalize_isolation(value: object) -> str:
     return " ".join(str(value).strip().lower().split())
 
 
-def _verify_impact_safety_row(
-    row: Mapping[str, object],
-    config: SessionSafetyConfig,
-) -> None:
+def _verify_impact_safety_row(row: SafetyVerifyRow, config: SessionSafetyConfig) -> None:
     """Reject an impact session whose hardened state was not actually observed.
 
     Runs after ``impact.harden_search_path`` and before
@@ -238,47 +220,28 @@ def _verify_impact_safety_row(
     no catalog read is ever issued against an unverified session.
     """
     expected = _expected_state(config)
-    try:
-        transaction_read_only = bool(row["transaction_read_only"])
-        isolation = _normalize_isolation(row["transaction_isolation"])
-        statement_ms = _as_int(row["statement_timeout_ms"], "statement_timeout_ms")
-        lock_ms = _as_int(row["lock_timeout_ms"], "lock_timeout_ms")
-        idle_ms = _as_int(
-            row["idle_in_transaction_session_timeout_ms"],
-            "idle_in_transaction_session_timeout_ms",
-        )
-        effective_search_path = _as_tuple_str(row["effective_search_path"], "effective_search_path")
-    except KeyError as exc:
-        raise PginspectInternalError(
-            "impact safety verification returned unexpected shape",
-            debug_frames=build_safe_debug_frames(exc),
-        ) from None
-
-    search_path_raw = row.get("search_path_raw")
-    search_path_raw_ok = (
-        search_path_raw is None or str(search_path_raw).strip() == _HARDENED_SEARCH_PATH[0]
-    )
 
     # The impact profile scopes read-only to the transaction (BEGIN READ ONLY),
     # so `transaction_read_only` is the authoritative read-only observation for
     # both fields of the Foundation observed-state contract.
     observed = SessionSafetyObservedState(
-        default_transaction_read_only=transaction_read_only,
-        transaction_read_only=transaction_read_only,
-        statement_timeout_ms=statement_ms,
-        lock_timeout_ms=lock_ms,
-        idle_in_transaction_session_timeout_ms=idle_ms,
-        search_path=effective_search_path,
+        default_transaction_read_only=row.transaction_read_only,
+        transaction_read_only=row.transaction_read_only,
+        statement_timeout_ms=row.statement_timeout_ms,
+        lock_timeout_ms=row.lock_timeout_ms,
+        idle_in_transaction_session_timeout_ms=row.idle_in_transaction_session_timeout_ms,
+        search_path=row.effective_search_path,
     )
 
     matches = (
-        transaction_read_only is True
-        and isolation == _EXPECTED_IMPACT_ISOLATION
-        and effective_search_path == _HARDENED_SEARCH_PATH
-        and search_path_raw_ok
-        and statement_ms == expected.statement_timeout_ms
-        and lock_ms == expected.lock_timeout_ms
-        and idle_ms == expected.idle_in_transaction_session_timeout_ms
+        row.transaction_read_only is True
+        and _normalize_isolation(row.transaction_isolation) == _EXPECTED_IMPACT_ISOLATION
+        and row.effective_search_path == _HARDENED_SEARCH_PATH
+        and row.search_path_raw.strip() == _HARDENED_SEARCH_PATH[0]
+        and row.statement_timeout_ms == expected.statement_timeout_ms
+        and row.lock_timeout_ms == expected.lock_timeout_ms
+        and row.idle_in_transaction_session_timeout_ms
+        == expected.idle_in_transaction_session_timeout_ms
     )
     if not matches:
         raise SessionSafetyError(
@@ -290,77 +253,45 @@ def _verify_impact_safety_row(
 
 
 def _build_resolution_context(
-    resolution_row: Mapping[str, object],
-    preflight_row: Mapping[str, object],
+    resolution_row: ResolutionCaptureRow,
+    preflight_row: PreflightRow,
 ) -> ResolutionContext:
-    try:
-        server_version_num = _as_int(preflight_row["server_version_num"], "server_version_num")
-        return ResolutionContext(
-            database=_as_str(resolution_row["database"], "database"),
-            role=_as_str(resolution_row["role"], "role"),
-            session_user=_as_str(resolution_row["session_user"], "session_user"),
-            current_schema=_as_optional_str(resolution_row["current_schema"]),
-            current_schemas_user=_as_tuple_str(
-                resolution_row["current_schemas_user"], "current_schemas_user"
-            ),
-            current_schemas_with_implicit=_as_tuple_str(
-                resolution_row["current_schemas_with_implicit"],
-                "current_schemas_with_implicit",
-            ),
-            search_path_raw=_as_str(resolution_row["search_path_raw"], "search_path_raw"),
-            max_identifier_length_bytes=_as_int(
-                resolution_row["max_identifier_length_bytes"],
-                "max_identifier_length_bytes",
-            ),
-            server_major=server_version_num // 10_000,
-            server_version_num=server_version_num,
-            keyword_categories=_as_keyword_categories(preflight_row["keyword_categories"]),
-        )
-    except KeyError as exc:
-        raise PginspectInternalError(
-            "impact profile query returned unexpected shape",
-            debug_frames=build_safe_debug_frames(exc),
-        ) from None
+    return ResolutionContext(
+        database=resolution_row.database,
+        role=resolution_row.role,
+        session_user=resolution_row.session_user,
+        current_schema=resolution_row.current_schema,
+        current_schemas_user=resolution_row.current_schemas_user,
+        current_schemas_with_implicit=resolution_row.current_schemas_with_implicit,
+        search_path_raw=resolution_row.search_path_raw,
+        max_identifier_length_bytes=resolution_row.max_identifier_length_bytes,
+        server_major=preflight_row.server_version_num // 10_000,
+        server_version_num=preflight_row.server_version_num,
+        keyword_categories=preflight_row.keyword_categories,
+    )
 
 
 def _build_impact_connection_context(
-    resolution_row: Mapping[str, object],
-    preflight_row: Mapping[str, object],
+    resolution_row: ResolutionCaptureRow,
+    preflight_row: PreflightRow,
 ) -> ImpactConnectionContext:
-    try:
-        server_version_num = _as_int(preflight_row["server_version_num"], "server_version_num")
-        return ImpactConnectionContext(
-            server_version=_as_str(preflight_row["server_version"], "server_version"),
-            server_version_num=server_version_num,
-            server_major=server_version_num // 10_000,
-            database=_as_str(resolution_row["database"], "database"),
-            role=_as_str(resolution_row["role"], "role"),
-            session_user=_as_str(resolution_row["session_user"], "session_user"),
-            current_schema=_as_optional_str(resolution_row["current_schema"]),
-            search_path_raw=_as_str(resolution_row["search_path_raw"], "search_path_raw"),
-            standard_conforming_strings=_as_str(
-                preflight_row["standard_conforming_strings"],
-                "standard_conforming_strings",
-            ),
-            server_encoding=_as_str(preflight_row["server_encoding"], "server_encoding"),
-            client_encoding=_as_str(preflight_row["client_encoding"], "client_encoding"),
-            transaction_isolation=_as_str(
-                preflight_row["transaction_isolation"], "transaction_isolation"
-            ),
-            transaction_read_only=_as_str(
-                preflight_row["transaction_read_only"], "transaction_read_only"
-            ),
-            in_recovery=bool(preflight_row["in_recovery"]),
-            max_identifier_length=_as_int(
-                resolution_row["max_identifier_length_bytes"],
-                "max_identifier_length_bytes",
-            ),
-        )
-    except KeyError as exc:
-        raise PginspectInternalError(
-            "impact profile query returned unexpected shape",
-            debug_frames=build_safe_debug_frames(exc),
-        ) from None
+    return ImpactConnectionContext(
+        server_version=preflight_row.server_version,
+        server_version_num=preflight_row.server_version_num,
+        server_major=preflight_row.server_version_num // 10_000,
+        database=resolution_row.database,
+        role=resolution_row.role,
+        session_user=resolution_row.session_user,
+        current_schema=resolution_row.current_schema,
+        search_path_raw=resolution_row.search_path_raw,
+        standard_conforming_strings=preflight_row.standard_conforming_strings,
+        server_encoding=preflight_row.server_encoding,
+        client_encoding=preflight_row.client_encoding,
+        transaction_isolation=preflight_row.transaction_isolation,
+        transaction_read_only=preflight_row.transaction_read_only,
+        in_recovery=preflight_row.in_recovery,
+        max_identifier_length=resolution_row.max_identifier_length_bytes,
+    )
 
 
 class DiagnosticSession:
@@ -598,21 +529,62 @@ class DiagnosticSession:
             raise mapped from None
         return rows
 
-    def _run_impact_query(
+    def _execute_allowlisted_query(
         self,
         spec: QuerySpec,
         params: tuple[Any, ...],
-        recorder: ImpactQueryRecorder | None,
-    ) -> Mapping[str, object] | None:
-        if recorder is not None:
-            recorder(spec.query_id, spec.sql, params, spec.command_kind)
-        if spec.command_kind == "SELECT":
+        *,
+        fetch: FetchMode = "one",
+    ) -> Any:
+        """Run one registry `QuerySpec` against a cursor; SQL text is never a parameter.
+
+        This is the only place impact SQL reaches psycopg. Allowlist lookup,
+        parameter validation and row decoding all live in
+        `pginspect.impact.query_exec.execute_allowlisted`, which is the sole
+        sanctioned caller of this method.
+        """
+        if self._state not in (SessionState.ESTABLISHING, SessionState.READY):
+            raise PginspectInternalError(
+                f"DiagnosticSession rejects allowlisted queries in state {self._state.value}"
+            )
+        try:
+            if fetch == "none" or spec.command_kind != "SELECT":
+                with self._connection.cursor() as cur:
+                    cur.execute(spec.sql, params)
+                return None
             with self._connection.cursor(row_factory=dict_row) as cur:
                 cur.execute(spec.sql, params)
+                if fetch == "all":
+                    return cur.fetchall()
                 return cur.fetchone()
-        with self._connection.cursor() as cur:
-            cur.execute(spec.sql, params)
-        return None
+        except psycopg.Error as exc:
+            self._state = SessionState.FAILED
+            raise _map_session_sql_error(exc) from None
+
+    def as_query_executor(self, *, recorder: QueryRecorder | None = None) -> SessionQueryExecutor:
+        """Production `QueryExecutor` for `resolve.py` / `catalog.py`.
+
+        Returns the adapter that routes every catalog/resolution read through
+        `execute_allowlisted` and this session's cursor, so no caller can reach
+        the database without going through the registry allowlist.
+        """
+        return SessionQueryExecutor(session=self, recorder=recorder)
+
+    def _run_impact_query(
+        self,
+        query_id: str,
+        params: tuple[Any, ...],
+        recorder: ImpactQueryRecorder | None,
+        *,
+        fetch: FetchMode = "one",
+    ) -> Any:
+        return execute_allowlisted(
+            self,
+            query_id,
+            params,
+            recorder=_adapt_impact_recorder(recorder),
+            fetch=fetch,
+        )
 
     def establish_impact_profile(
         self,
@@ -646,7 +618,7 @@ class DiagnosticSession:
         self._entered = True
         self._state = SessionState.ESTABLISHING
         try:
-            self._run_impact_query(IMPACT_QUERY_REGISTRY["impact.begin_read_only_rr"], (), recorder)
+            self._run_impact_query("impact.begin_read_only_rr", (), recorder, fetch="none")
 
             catalog_snapshot_at = datetime.now(UTC)
 
@@ -655,30 +627,28 @@ class DiagnosticSession:
                 f"{self._config.lock_timeout_ms}ms",
                 f"{self._config.idle_in_transaction_session_timeout_ms}ms",
             )
-            self._run_impact_query(
-                IMPACT_QUERY_REGISTRY["impact.set_timeouts"], timeout_params, recorder
+            self._run_impact_query("impact.set_timeouts", timeout_params, recorder, fetch="none")
+
+            resolution_row: ResolutionCaptureRow | None = self._run_impact_query(
+                "impact.capture_resolution_context", (), recorder
             )
 
-            resolution_row = self._run_impact_query(
-                IMPACT_QUERY_REGISTRY["impact.capture_resolution_context"], (), recorder
-            )
+            self._run_impact_query("impact.harden_search_path", (), recorder, fetch="none")
 
-            self._run_impact_query(IMPACT_QUERY_REGISTRY["impact.harden_search_path"], (), recorder)
-
-            verify_row = self._run_impact_query(
-                IMPACT_QUERY_REGISTRY["impact.verify_safety"], (), recorder
+            verify_row: SafetyVerifyRow | None = self._run_impact_query(
+                "impact.verify_safety", (), recorder
             )
             if verify_row is None:
                 raise PginspectInternalError("impact safety verification returned no row")
             _verify_impact_safety_row(verify_row, self._config)
 
-            preflight_row = self._run_impact_query(
-                IMPACT_QUERY_REGISTRY["impact.preflight_reads"], (), recorder
+            preflight_row: PreflightRow | None = self._run_impact_query(
+                "impact.preflight_reads", (), recorder
             )
         except SessionSafetyError:
             self._state = SessionState.FAILED
             raise
-        except PginspectInternalError:
+        except (ConnectNetworkError, ConnectFailedError, PginspectInternalError):
             self._state = SessionState.FAILED
             raise
         except psycopg.Error as exc:

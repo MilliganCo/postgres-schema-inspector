@@ -6,6 +6,11 @@ not import psycopg: it holds SQL text and metadata only. Session-profile
 execution lives in `pginspect.session`; resolution/catalog execution goes
 through `pginspect.impact.query_exec` + an injected `QueryExecutor`.
 
+Every SELECT carries a concrete frozen `row_model` from `query_rows.py`.
+The only specs allowed `row_model=None` are the three whose result is
+intentionally discarded: `impact.begin_read_only_rr`, `impact.set_timeouts`
+and `impact.harden_search_path`.
+
 No query in this module ever calls a `pg_*_is_visible` catalog helper:
 resolution ranks candidates using the caller-supplied
 `current_schemas(true)` ordering only (design section 2.4).
@@ -17,6 +22,25 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Literal, LiteralString
+
+from pginspect.impact.query_rows import (
+    ColumnRow,
+    ConstraintRow,
+    DependencyEdgeRow,
+    DomainConstraintRow,
+    FunctionCandidateRow,
+    FunctionRow,
+    IndexRow,
+    PgCastRow,
+    PreflightRow,
+    RelationCandidateRow,
+    RelationMetricsRow,
+    RelationRow,
+    ResolutionCaptureRow,
+    SafetyVerifyRow,
+    TypeCandidateRow,
+    TypeRow,
+)
 
 CommandKind = Literal["SELECT", "SET", "BEGIN"]
 
@@ -125,7 +149,7 @@ _IMPACT_SESSION_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.capture_resolution_context",
         sql=IMPACT_CAPTURE_RESOLUTION_CONTEXT_SQL,
         param_types=(),
-        row_model=None,
+        row_model=ResolutionCaptureRow,
         required_evidence_family="resolution",
         command_kind="SELECT",
     ),
@@ -141,7 +165,7 @@ _IMPACT_SESSION_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.verify_safety",
         sql=IMPACT_VERIFY_SAFETY_SQL,
         param_types=(),
-        row_model=None,
+        row_model=SafetyVerifyRow,
         required_evidence_family="session",
         command_kind="SELECT",
     ),
@@ -149,7 +173,7 @@ _IMPACT_SESSION_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.preflight_reads",
         sql=IMPACT_PREFLIGHT_READS_SQL,
         param_types=(),
-        row_model=None,
+        row_model=PreflightRow,
         required_evidence_family="preflight",
         command_kind="SELECT",
     ),
@@ -384,7 +408,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.resolve_relation_candidates",
         sql=IMPACT_RESOLVE_RELATION_CANDIDATES_SQL,
         param_types=(tuple, str),
-        row_model=None,
+        row_model=RelationCandidateRow,
         required_evidence_family="resolution",
         command_kind="SELECT",
     ),
@@ -392,7 +416,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.resolve_type_candidates",
         sql=IMPACT_RESOLVE_TYPE_CANDIDATES_SQL,
         param_types=(tuple, str),
-        row_model=None,
+        row_model=TypeCandidateRow,
         required_evidence_family="resolution",
         command_kind="SELECT",
     ),
@@ -400,7 +424,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.resolve_function_candidates",
         sql=IMPACT_RESOLVE_FUNCTION_CANDIDATES_SQL,
         param_types=(tuple, str, tuple),
-        row_model=None,
+        row_model=FunctionCandidateRow,
         required_evidence_family="resolution",
         command_kind="SELECT",
     ),
@@ -408,7 +432,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.fetch_relation",
         sql=IMPACT_FETCH_RELATION_SQL,
         param_types=(int,),
-        row_model=None,
+        row_model=RelationRow,
         required_evidence_family="catalog_object",
         command_kind="SELECT",
     ),
@@ -416,7 +440,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.fetch_columns",
         sql=IMPACT_FETCH_COLUMNS_SQL,
         param_types=(int,),
-        row_model=None,
+        row_model=ColumnRow,
         required_evidence_family="catalog_object",
         command_kind="SELECT",
     ),
@@ -424,7 +448,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.fetch_type",
         sql=IMPACT_FETCH_TYPE_SQL,
         param_types=(int,),
-        row_model=None,
+        row_model=TypeRow,
         required_evidence_family="catalog_object",
         command_kind="SELECT",
     ),
@@ -432,7 +456,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.fetch_domain_constraints",
         sql=IMPACT_FETCH_DOMAIN_CONSTRAINTS_SQL,
         param_types=(int,),
-        row_model=None,
+        row_model=DomainConstraintRow,
         required_evidence_family="catalog_object",
         command_kind="SELECT",
     ),
@@ -440,7 +464,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.fetch_indexes",
         sql=IMPACT_FETCH_INDEXES_SQL,
         param_types=(int,),
-        row_model=None,
+        row_model=IndexRow,
         required_evidence_family="catalog_object",
         command_kind="SELECT",
     ),
@@ -448,7 +472,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.fetch_constraints",
         sql=IMPACT_FETCH_CONSTRAINTS_SQL,
         param_types=(int,),
-        row_model=None,
+        row_model=ConstraintRow,
         required_evidence_family="catalog_object",
         command_kind="SELECT",
     ),
@@ -456,7 +480,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.fetch_function",
         sql=IMPACT_FETCH_FUNCTION_SQL,
         param_types=(int,),
-        row_model=None,
+        row_model=FunctionRow,
         required_evidence_family="catalog_object",
         command_kind="SELECT",
     ),
@@ -464,7 +488,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.fetch_dependency_edges",
         sql=IMPACT_FETCH_DEPENDENCY_EDGES_SQL,
         param_types=(int, int, int, int),
-        row_model=None,
+        row_model=DependencyEdgeRow,
         required_evidence_family="dependency_edge",
         command_kind="SELECT",
     ),
@@ -472,7 +496,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.fetch_relation_metrics",
         sql=IMPACT_FETCH_RELATION_METRICS_SQL,
         param_types=(int,),
-        row_model=None,
+        row_model=RelationMetricsRow,
         required_evidence_family="metric_observation",
         command_kind="SELECT",
     ),
@@ -480,7 +504,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         query_id="impact.fetch_pg_cast",
         sql=IMPACT_FETCH_PG_CAST_SQL,
         param_types=(int, int),
-        row_model=None,
+        row_model=PgCastRow,
         required_evidence_family="coercion",
         command_kind="SELECT",
     ),
