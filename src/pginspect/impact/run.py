@@ -109,7 +109,7 @@ from pginspect.models.enums import (
 from pginspect.models.execution_error import DebugPayload, ExecutionError
 from pginspect.session import DiagnosticSession, ImpactSessionState
 
-__all__ = ["run_impact", "_force_rollback"]
+__all__ = ["run_impact"]
 
 _NA = PhysicalTriState.NOT_APPLICABLE
 _NO = PhysicalTriState.NO
@@ -153,11 +153,6 @@ class CatalogBoundPayload:
     if_not_exists: bool
     nullability: Literal["unspecified", "null", "not_null"] | None
     has_default_tokens: bool
-
-
-def _force_rollback(connection: Any) -> None:
-    """Abort the impact READ ONLY transaction opened by `establish_impact_profile`."""
-    connection.rollback()
 
 
 def _now() -> datetime:
@@ -1053,10 +1048,8 @@ def run_impact(
 
     script = parse_migration_path(path)
 
-    connection_opened = False
     try:
         with open_connection(connection_config) as conn:
-            connection_opened = True
             session = DiagnosticSession(conn, session_safety)
             try:
                 profile: ImpactSessionState = session.establish_impact_profile()
@@ -1147,8 +1140,7 @@ def run_impact(
                     stage=AnalysisStage.COMPLETE,
                 )
             finally:
-                if connection_opened:
-                    _force_rollback(conn)
+                session.force_rollback()
     except LocalPhaseError:
         raise
     except SessionSafetyError as exc:

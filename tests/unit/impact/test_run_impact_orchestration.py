@@ -227,6 +227,7 @@ def test_pipeline_stage_order(configs: tuple[ConnectionConfig, SessionSafetyConf
     session.as_query_executor.side_effect = lambda **kwargs: (
         order.append("executor") or MagicMock()
     )
+    session.force_rollback.side_effect = lambda: order.append("rollback")
 
     with (
         patch("pginspect.impact.run.parse_migration_path", return_value=_script(_local_stmt(1))),
@@ -238,9 +239,6 @@ def test_pipeline_stage_order(configs: tuple[ConnectionConfig, SessionSafetyConf
         ),
         patch("pginspect.impact.run._build_unit_for_statement", side_effect=_build),
         patch("pginspect.impact.run.apply_sequence_constraints", side_effect=_seq),
-        patch(
-            "pginspect.impact.run._force_rollback", side_effect=lambda c: order.append("rollback")
-        ),
     ):
         result = run_impact(Path("migration.sql"), conn_cfg, safety)
 
@@ -510,6 +508,7 @@ def test_preflight_incomplete_empty_statements(
     session.establish_impact_profile.return_value = _profile(
         _connection_context(server_major=10, server_version_num=100000)
     )
+    session.force_rollback.side_effect = lambda: rollbacks.append("rb")
 
     with (
         patch("pginspect.impact.run.parse_migration_path", return_value=_script(_local_stmt(1))),
@@ -521,7 +520,6 @@ def test_preflight_incomplete_empty_statements(
                 True, (PreflightGateFailure("server_major", "unsupported"),)
             ),
         ),
-        patch("pginspect.impact.run._force_rollback", side_effect=lambda c: rollbacks.append("rb")),
     ):
         result = run_impact(Path("migration.sql"), conn_cfg, safety)
 
@@ -530,6 +528,7 @@ def test_preflight_incomplete_empty_statements(
     assert result.statements == ()
     assert result.summary.incomplete is True
     assert rollbacks == ["rb"]
+    session.force_rollback.assert_called()
 
 
 @pytest.mark.parametrize(
@@ -551,6 +550,7 @@ def test_preflight_incomplete_empty_statements(
             ),
         ),
         ("catalog", PginspectInternalError("catalog boom")),
+        ("rule", PginspectInternalError("rule boom")),
         ("success", None),
     ],
 )
@@ -571,6 +571,7 @@ def test_rollback_on_db_paths(
             return None
 
     session = MagicMock()
+    session.force_rollback.side_effect = lambda: rollbacks.append("rb")
     if fail_at == "profile":
         session.establish_impact_profile.side_effect = exc
     else:
@@ -591,7 +592,6 @@ def test_rollback_on_db_paths(
         patch("pginspect.impact.run.parse_migration_path", return_value=_script(_local_stmt(1))),
         patch("pginspect.impact.run.open_connection", return_value=_CM()),
         patch("pginspect.impact.run.DiagnosticSession", return_value=session),
-        patch("pginspect.impact.run._force_rollback", side_effect=lambda c: rollbacks.append("rb")),
     ]
     if fail_at != "profile":
         patches.extend(
@@ -607,6 +607,19 @@ def test_rollback_on_db_paths(
             patches.append(
                 patch("pginspect.impact.run.resolve_relation", side_effect=exc),
             )
+        elif fail_at == "rule":
+            patches.extend(
+                [
+                    patch(
+                        "pginspect.impact.run.resolve_relation",
+                        return_value=RelationResolution("found", 42, "public", "t", "basetable"),
+                    ),
+                    patch(
+                        "pginspect.impact.run._build_unit_for_statement",
+                        side_effect=exc,
+                    ),
+                ]
+            )
         else:
             patches.extend(
                 [
@@ -617,22 +630,27 @@ def test_rollback_on_db_paths(
                 ]
             )
 
-    with patches[0], patches[1], patches[2], patches[3]:
+    with patches[0], patches[1], patches[2]:
         if fail_at == "profile":
             result = run_impact(Path("migration.sql"), conn_cfg, safety)
             assert result.outcome is Outcome.FAILED
             assert result.exit_code == 3
-        elif fail_at == "catalog":
-            with patches[4], patches[5], patches[6]:
-                result = run_impact(Path("migration.sql"), conn_cfg, safety)
+        elif fail_at in {"catalog", "rule"}:
+            with patches[3], patches[4], patches[5]:
+                if fail_at == "rule":
+                    with patches[6]:
+                        result = run_impact(Path("migration.sql"), conn_cfg, safety)
+                else:
+                    result = run_impact(Path("migration.sql"), conn_cfg, safety)
             assert result.outcome is Outcome.FAILED
             assert result.exit_code == 5
         else:
-            with patches[4], patches[5], patches[6]:
+            with patches[3], patches[4], patches[5]:
                 result = run_impact(Path("migration.sql"), conn_cfg, safety)
             assert result.outcome is Outcome.COMPLETED
 
     assert rollbacks == ["rb"]
+    session.force_rollback.assert_called()
 
 
 def test_unsupported_sequence_preserved(

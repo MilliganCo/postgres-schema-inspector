@@ -103,6 +103,19 @@ def test_impact_package_does_not_import_psycopg() -> None:
     assert offenders == [], f"psycopg imported under impact/: {offenders}"
 
 
+def test_impact_package_does_not_own_raw_connection_or_cursor() -> None:
+    """impact/* must roll back through DiagnosticSession, never raw connection ops."""
+    impact_root = SRC_ROOT / "impact"
+    forbidden_attrs = {"rollback", "cursor", "commit"}
+    offenders: list[str] = []
+    for path in _iter_python_files(impact_root):
+        tree = _read_tree(path)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute) and node.attr in forbidden_attrs:
+                offenders.append(f"{_module_name(path)}: .{node.attr}")
+    assert offenders == [], f"impact/* owns raw connection/cursor ops: {offenders}"
+
+
 def test_impact_cli_does_not_open_or_stat_migration_path() -> None:
     """Typer may receive Path; only impact.input may open/stat/read it."""
     path = SRC_ROOT / "impact" / "cli.py"

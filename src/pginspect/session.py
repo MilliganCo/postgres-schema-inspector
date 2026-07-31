@@ -570,6 +570,27 @@ class DiagnosticSession:
         """
         return SessionQueryExecutor(session=self, recorder=recorder)
 
+    def force_rollback(self) -> None:
+        """Abort the impact-profile transaction without exposing the connection.
+
+        `establish_impact_profile` opens a READ ONLY REPEATABLE READ transaction
+        via `BEGIN`. Every `run_impact` path that constructed this session must
+        call this method so the abort stays inside the DiagnosticSession seam
+        rather than reaching `connection.rollback()` from `impact/*`.
+        """
+        try:
+            self._connection.rollback()
+        except psycopg.Error as exc:
+            self._state = SessionState.FAILED
+            raise _map_session_sql_error(exc) from None
+        except Exception as exc:
+            self._state = SessionState.FAILED
+            raise PginspectInternalError(
+                "impact force_rollback failed",
+                debug_frames=build_safe_debug_frames(exc),
+                driver_exception_type=type(exc).__name__,
+            ) from None
+
     def _run_impact_query(
         self,
         query_id: str,
