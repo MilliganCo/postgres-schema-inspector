@@ -29,9 +29,8 @@ jobs:
       - name: Schema drift and golden validation
         env:
           PYTHONUTF8: "1"
-        run: python -m pytest tests/unit/test_schema_drift.py -v
-
-      - name: Regenerate schemas and compare exact bytes
         run: |
-          python scripts/export_schemas.py
-          git diff --exit-code -- docs/schemas
+          python -m pytest tests/unit/test_schema_drift.py tests/unit/impact/test_schema_drift.py -v
+
+      - name: Compare fresh export to committed schemas
+        run: python scripts/compare_schemas_export.py

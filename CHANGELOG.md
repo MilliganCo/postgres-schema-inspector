@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Prototype (private repository only): `pginspect impact` change-impact analysis with
+  committed `impact-command-result` / `impact-statement-card` **0.1** JSON Schemas,
+  Demo fixtures, and safety gates. Not a published or stability-guaranteed release.
 - Foundation design, plan, security baseline, and MIT licensing.
 - Installable `pginspect` package (Python ≥3.11) with console script entrypoint.
 - CLI commands `version` and `connect-test` (text/JSON); fail-closed read-only

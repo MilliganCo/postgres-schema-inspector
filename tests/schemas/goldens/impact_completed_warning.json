@@ -1,0 +1,86 @@
+{
+  "app_version": "0.0.0",
+  "command": "impact",
+  "connection_context": null,
+  "duration_ms": 10,
+  "error": null,
+  "evidence": [
+    {
+      "attributes": {
+        "rule_key": "add.nullable.no_default"
+      },
+      "evidence_id": "rule:add.nullable.no_default",
+      "kind": "semantic_rule",
+      "summary": "nullable add without default"
+    }
+  ],
+  "exit_code": 1,
+  "input": {
+    "card_count": 1,
+    "control_statement_count": 0,
+    "path_basename": "m.sql",
+    "source_statement_count": 1
+  },
+  "outcome": "completed",
+  "preflight": {
+    "analysis_stage_reached": "complete",
+    "checks": [],
+    "limitations": [],
+    "status": "passed"
+  },
+  "schema_version": "0.1",
+  "snapshot": null,
+  "started_at": "2026-07-29T12:00:00Z",
+  "statements": [
+    {
+      "affected_objects": [],
+      "analysis_status": "analyzed",
+      "confidence": {
+        "dependencies": "high",
+        "execution": "high",
+        "impact_scale": "medium",
+        "lock": "high",
+        "rewrite": "high"
+      },
+      "end_line": 1,
+      "evidence_refs": [
+        "rule:add.nullable.no_default"
+      ],
+      "execution_prediction": "applies",
+      "index_rebuild": "no",
+      "limitations": [
+        "Authorization failures are not modeled; analysis assumes sufficient privileges."
+      ],
+      "lock": "AccessExclusiveLock",
+      "no_op_reason": null,
+      "risk": "warning",
+      "safer_rollout": {
+        "assumptions": [],
+        "preconditions": [],
+        "steps": []
+      },
+      "sanitized_preview": "ALTER TABLE t ADD COLUMN note text",
+      "start_line": 1,
+      "statement_fingerprint": "sha256:0123456789abcdef",
+      "statement_index": 1,
+      "table_rewrite": "no",
+      "table_scan": "no",
+      "why": [
+        "catalog DDL semantics: metadata-only add"
+      ]
+    }
+  ],
+  "summary": {
+    "analyzed_count": 1,
+    "critical_count": 0,
+    "incomplete": false,
+    "may_fail_count": 0,
+    "no_op_count": 0,
+    "not_applicable_count": 0,
+    "overall_risk": "warning",
+    "safe_count": 0,
+    "unsupported_count": 0,
+    "warning_count": 1,
+    "would_fail_count": 0
+  }
+}

@@ -1,0 +1,360 @@
+{
+  "$defs": {
+    "AffectedObjectRef": {
+      "additionalProperties": false,
+      "description": "`schema_` is the Python attribute; the wire/alias name is `schema`\n(matches design section 4.3) since `schema` shadows a deprecated\n`pydantic.BaseModel` attribute.",
+      "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Detail"
+        },
+        "identity": {
+          "title": "Identity",
+          "type": "string"
+        },
+        "impact_role": {
+          "$ref": "#/$defs/ImpactRole"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "object_kind": {
+          "$ref": "#/$defs/ObjectKind"
+        },
+        "parent_identity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parent Identity"
+        },
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Schema"
+        }
+      },
+      "required": [
+        "object_kind",
+        "identity",
+        "schema",
+        "name",
+        "parent_identity",
+        "impact_role",
+        "detail"
+      ],
+      "title": "AffectedObjectRef",
+      "type": "object"
+    },
+    "AnalysisStatus": {
+      "enum": [
+        "analyzed",
+        "unsupported_parser",
+        "unsupported_resolution",
+        "unsupported_scope",
+        "unsupported_evidence",
+        "unsupported_sequence"
+      ],
+      "title": "AnalysisStatus",
+      "type": "string"
+    },
+    "ConfidenceLevel": {
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "not_applicable"
+      ],
+      "title": "ConfidenceLevel",
+      "type": "string"
+    },
+    "ExecutionPrediction": {
+      "enum": [
+        "applies",
+        "no_op",
+        "would_fail",
+        "may_fail",
+        "not_evaluated"
+      ],
+      "title": "ExecutionPrediction",
+      "type": "string"
+    },
+    "ImpactConfidence": {
+      "additionalProperties": false,
+      "properties": {
+        "dependencies": {
+          "$ref": "#/$defs/ConfidenceLevel"
+        },
+        "execution": {
+          "$ref": "#/$defs/ConfidenceLevel"
+        },
+        "impact_scale": {
+          "$ref": "#/$defs/ImpactScaleConfidence"
+        },
+        "lock": {
+          "$ref": "#/$defs/ConfidenceLevel"
+        },
+        "rewrite": {
+          "$ref": "#/$defs/ConfidenceLevel"
+        }
+      },
+      "required": [
+        "lock",
+        "rewrite",
+        "execution",
+        "dependencies",
+        "impact_scale"
+      ],
+      "title": "ImpactConfidence",
+      "type": "object"
+    },
+    "ImpactRole": {
+      "enum": [
+        "target",
+        "internal",
+        "automatic",
+        "blocker",
+        "cascade",
+        "rebuilt",
+        "related"
+      ],
+      "title": "ImpactRole",
+      "type": "string"
+    },
+    "ImpactScaleConfidence": {
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "unknown",
+        "not_applicable"
+      ],
+      "title": "ImpactScaleConfidence",
+      "type": "string"
+    },
+    "LockMode": {
+      "enum": [
+        "AccessExclusiveLock",
+        "ShareUpdateExclusiveLock",
+        "not_applicable",
+        "unknown"
+      ],
+      "title": "LockMode",
+      "type": "string"
+    },
+    "NoOpReason": {
+      "enum": [
+        "target_missing_if_exists",
+        "column_missing_if_exists",
+        "column_already_exists_if_not_exists"
+      ],
+      "title": "NoOpReason",
+      "type": "string"
+    },
+    "ObjectKind": {
+      "enum": [
+        "table",
+        "column",
+        "index",
+        "constraint",
+        "view",
+        "function",
+        "type",
+        "collation",
+        "other"
+      ],
+      "title": "ObjectKind",
+      "type": "string"
+    },
+    "PhysicalTriState": {
+      "enum": [
+        "yes",
+        "no",
+        "possible",
+        "unknown",
+        "not_applicable"
+      ],
+      "title": "PhysicalTriState",
+      "type": "string"
+    },
+    "Risk": {
+      "enum": [
+        "critical",
+        "warning",
+        "safe",
+        "not_applicable"
+      ],
+      "title": "Risk",
+      "type": "string"
+    },
+    "SaferRollout": {
+      "additionalProperties": false,
+      "properties": {
+        "assumptions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "preconditions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "steps": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "title": "SaferRollout",
+      "type": "object"
+    }
+  },
+  "$id": "urn:pginspect:schema:impact-statement-card:0.1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "affected_objects": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AffectedObjectRef"
+      },
+      "title": "Affected Objects",
+      "type": "array"
+    },
+    "analysis_status": {
+      "$ref": "#/$defs/AnalysisStatus"
+    },
+    "confidence": {
+      "$ref": "#/$defs/ImpactConfidence"
+    },
+    "end_line": {
+      "title": "End Line",
+      "type": "integer"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "execution_prediction": {
+      "$ref": "#/$defs/ExecutionPrediction"
+    },
+    "index_rebuild": {
+      "$ref": "#/$defs/PhysicalTriState"
+    },
+    "limitations": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "lock": {
+      "$ref": "#/$defs/LockMode"
+    },
+    "no_op_reason": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NoOpReason"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "risk": {
+      "$ref": "#/$defs/Risk"
+    },
+    "safer_rollout": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SaferRollout"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "sanitized_preview": {
+      "title": "Sanitized Preview",
+      "type": "string"
+    },
+    "start_line": {
+      "title": "Start Line",
+      "type": "integer"
+    },
+    "statement_fingerprint": {
+      "title": "Statement Fingerprint",
+      "type": "string"
+    },
+    "statement_index": {
+      "title": "Statement Index",
+      "type": "integer"
+    },
+    "table_rewrite": {
+      "$ref": "#/$defs/PhysicalTriState"
+    },
+    "table_scan": {
+      "$ref": "#/$defs/PhysicalTriState"
+    },
+    "why": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Why",
+      "type": "array"
+    }
+  },
+  "required": [
+    "statement_index",
+    "start_line",
+    "end_line",
+    "statement_fingerprint",
+    "sanitized_preview",
+    "analysis_status",
+    "execution_prediction",
+    "no_op_reason",
+    "risk",
+    "confidence",
+    "lock",
+    "table_rewrite",
+    "table_scan",
+    "index_rebuild"
+  ],
+  "title": "ImpactStatementCard",
+  "type": "object"
+}

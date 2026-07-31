@@ -1,0 +1,47 @@
+{
+  "app_version": "0.0.0",
+  "command": "impact",
+  "connection_context": null,
+  "duration_ms": 3,
+  "error": {
+    "category": "internal",
+    "classification_source": null,
+    "code": "internal_failure",
+    "debug": null,
+    "message": "boom",
+    "retryable": false,
+    "sqlstate": null
+  },
+  "evidence": [],
+  "exit_code": 5,
+  "input": {
+    "card_count": 0,
+    "control_statement_count": 0,
+    "path_basename": "m.sql",
+    "source_statement_count": 0
+  },
+  "outcome": "failed",
+  "preflight": {
+    "analysis_stage_reached": "parse",
+    "checks": [],
+    "limitations": [],
+    "status": "failed"
+  },
+  "schema_version": "0.1",
+  "snapshot": null,
+  "started_at": "2026-07-29T12:00:00Z",
+  "statements": [],
+  "summary": {
+    "analyzed_count": 0,
+    "critical_count": 0,
+    "incomplete": true,
+    "may_fail_count": 0,
+    "no_op_count": 0,
+    "not_applicable_count": 0,
+    "overall_risk": "not_applicable",
+    "safe_count": 0,
+    "unsupported_count": 0,
+    "warning_count": 0,
+    "would_fail_count": 0
+  }
+}

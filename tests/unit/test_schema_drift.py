@@ -57,7 +57,7 @@ def _finding_validator() -> Draft202012Validator:
 
 @pytest.mark.parametrize(
     "path",
-    sorted(GOLDENS_DIR.glob("*.json")),
+    sorted(p for p in GOLDENS_DIR.glob("*.json") if not p.name.startswith("impact_")),
     ids=lambda p: p.name,
 )
 def test_golden_fixtures_validate_and_round_trip(path: Path) -> None:

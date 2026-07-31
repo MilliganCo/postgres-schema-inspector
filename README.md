@@ -16,8 +16,9 @@ It does **not** truncate data, run maintenance writes, claim that a role is unab
 | ------- | ------- |
 | `pginspect version` | Print the installed package version |
 | `pginspect connect-test` | Verify connectivity and session safety settings |
+| `pginspect impact` | **Prototype / private-repository feature** — catalog change-impact analysis for selected `ALTER TABLE` forms (not a shipped, reliability-guaranteed release) |
 
-There are no other product commands in Foundation.
+Foundation product surface remains `version` and `connect-test`. `impact` is an in-repo prototype while this repository stays private.
 
 ### Examples
 

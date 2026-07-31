@@ -10,6 +10,8 @@ from typing import Any
 
 from pydantic import TypeAdapter
 
+from pginspect.impact.models.card import ImpactStatementCard
+from pginspect.impact.models.result import ImpactCommandResult
 from pginspect.models.finding import Finding
 from pginspect.models.result import CommandResult
 
@@ -19,9 +21,24 @@ SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema"
 
 FINDING_SCHEMA_ID = "urn:pginspect:schema:finding:1.0"
 COMMAND_RESULT_SCHEMA_ID = "urn:pginspect:schema:command-result:1.0"
+IMPACT_COMMAND_RESULT_SCHEMA_ID = "urn:pginspect:schema:impact-command-result:0.1"
+IMPACT_STATEMENT_CARD_SCHEMA_ID = "urn:pginspect:schema:impact-statement-card:0.1"
 
 FINDING_SCHEMA_PATH = ROOT / "docs" / "schemas" / "finding" / "1.0.schema.json"
 COMMAND_RESULT_SCHEMA_PATH = ROOT / "docs" / "schemas" / "command-result" / "1.0.schema.json"
+IMPACT_COMMAND_RESULT_SCHEMA_PATH = (
+    ROOT / "docs" / "schemas" / "impact-command-result" / "0.1.schema.json"
+)
+IMPACT_STATEMENT_CARD_SCHEMA_PATH = (
+    ROOT / "docs" / "schemas" / "impact-statement-card" / "0.1.schema.json"
+)
+
+EXPECTED_SCHEMA_PATHS: tuple[Path, ...] = (
+    FINDING_SCHEMA_PATH,
+    COMMAND_RESULT_SCHEMA_PATH,
+    IMPACT_COMMAND_RESULT_SCHEMA_PATH,
+    IMPACT_STATEMENT_CARD_SCHEMA_PATH,
+)
 
 
 def canonical_schema_bytes(schema: dict[str, Any]) -> bytes:
@@ -43,17 +60,48 @@ def generate_command_result_schema() -> bytes:
     return generate_schema(CommandResult, COMMAND_RESULT_SCHEMA_ID)
 
 
-def write_schemas() -> None:
-    FINDING_SCHEMA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    COMMAND_RESULT_SCHEMA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    FINDING_SCHEMA_PATH.write_bytes(generate_finding_schema())
-    COMMAND_RESULT_SCHEMA_PATH.write_bytes(generate_command_result_schema())
+def generate_impact_command_result_schema() -> bytes:
+    return generate_schema(ImpactCommandResult, IMPACT_COMMAND_RESULT_SCHEMA_ID)
+
+
+def generate_impact_statement_card_schema() -> bytes:
+    return generate_schema(ImpactStatementCard, IMPACT_STATEMENT_CARD_SCHEMA_ID)
+
+
+def write_schemas(*, root: Path | None = None) -> dict[Path, bytes]:
+    """Write all schemas under ``root`` (default: repo ``docs/schemas``).
+
+    Returns a mapping of absolute written paths to bytes.
+    """
+    base = ROOT if root is None else root
+    mapping: dict[Path, bytes] = {
+        base / "docs" / "schemas" / "finding" / "1.0.schema.json": generate_finding_schema(),
+        base
+        / "docs"
+        / "schemas"
+        / "command-result"
+        / "1.0.schema.json": generate_command_result_schema(),
+        base
+        / "docs"
+        / "schemas"
+        / "impact-command-result"
+        / "0.1.schema.json": generate_impact_command_result_schema(),
+        base
+        / "docs"
+        / "schemas"
+        / "impact-statement-card"
+        / "0.1.schema.json": generate_impact_statement_card_schema(),
+    }
+    for path, payload in mapping.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+    return mapping
 
 
 def main() -> int:
-    write_schemas()
-    print(f"Wrote {FINDING_SCHEMA_PATH.relative_to(ROOT)}")
-    print(f"Wrote {COMMAND_RESULT_SCHEMA_PATH.relative_to(ROOT)}")
+    written = write_schemas()
+    for path in written:
+        print(f"Wrote {path.relative_to(ROOT)}")
     return 0
 
 

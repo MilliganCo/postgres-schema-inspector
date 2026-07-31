@@ -1,0 +1,77 @@
+{
+  "app_version": "0.0.0",
+  "command": "impact",
+  "connection_context": null,
+  "duration_ms": 8,
+  "error": null,
+  "evidence": [],
+  "exit_code": 3,
+  "input": {
+    "card_count": 1,
+    "control_statement_count": 0,
+    "path_basename": "m.sql",
+    "source_statement_count": 1
+  },
+  "outcome": "incomplete",
+  "preflight": {
+    "analysis_stage_reached": "complete",
+    "checks": [],
+    "limitations": [
+      "unsupported grammar"
+    ],
+    "status": "passed"
+  },
+  "schema_version": "0.1",
+  "snapshot": null,
+  "started_at": "2026-07-29T12:00:00Z",
+  "statements": [
+    {
+      "affected_objects": [],
+      "analysis_status": "unsupported_parser",
+      "confidence": {
+        "dependencies": "high",
+        "execution": "high",
+        "impact_scale": "medium",
+        "lock": "high",
+        "rewrite": "high"
+      },
+      "end_line": 1,
+      "evidence_refs": [],
+      "execution_prediction": "not_evaluated",
+      "index_rebuild": "no",
+      "limitations": [
+        "Authorization failures are not modeled; analysis assumes sufficient privileges."
+      ],
+      "lock": "AccessExclusiveLock",
+      "no_op_reason": null,
+      "risk": "not_applicable",
+      "safer_rollout": {
+        "assumptions": [],
+        "preconditions": [],
+        "steps": []
+      },
+      "sanitized_preview": "ALTER TABLE t ADD COLUMN note text",
+      "start_line": 1,
+      "statement_fingerprint": "sha256:0123456789abcdef",
+      "statement_index": 1,
+      "table_rewrite": "no",
+      "table_scan": "no",
+      "why": [
+        "catalog DDL semantics: metadata-only add"
+      ]
+    }
+  ],
+  "summary": {
+    "analyzed_count": 0,
+    "critical_count": 0,
+    "incomplete": true,
+    "may_fail_count": 0,
+    "no_op_count": 0,
+    "not_applicable_count": 1,
+    "overall_risk": "not_applicable",
+    "safe_count": 0,
+    "unsupported_count": 1,
+    "warning_count": 0,
+    "would_fail_count": 0
+  }
+}
