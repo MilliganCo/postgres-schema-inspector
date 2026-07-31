@@ -116,6 +116,18 @@ def test_impact_package_does_not_own_raw_connection_or_cursor() -> None:
     assert offenders == [], f"impact/* owns raw connection/cursor ops: {offenders}"
 
 
+def test_impact_query_registry_sql_is_literal_and_immutable() -> None:
+    from pginspect.impact.queries import IMPACT_QUERY_REGISTRY
+
+    assert len(IMPACT_QUERY_REGISTRY) > 0
+    for query_id, spec in IMPACT_QUERY_REGISTRY.items():
+        assert query_id == spec.query_id
+        assert isinstance(spec.sql, str)
+        assert "pg_" in spec.sql or spec.command_kind in {"BEGIN", "SET"} or "set_config" in spec.sql
+    with pytest.raises(TypeError):
+        IMPACT_QUERY_REGISTRY["x"] = None  # type: ignore[index]
+
+
 def test_impact_cli_does_not_open_or_stat_migration_path() -> None:
     """Typer may receive Path; only impact.input may open/stat/read it."""
     path = SRC_ROOT / "impact" / "cli.py"
