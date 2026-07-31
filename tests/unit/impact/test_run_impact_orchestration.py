@@ -257,10 +257,10 @@ def test_pipeline_stage_order(configs: tuple[ConnectionConfig, SessionSafetyConf
 
 
 @pytest.mark.parametrize(
-    ("if_exists", "prediction", "reason", "risk"),
+    ("if_exists", "prediction", "reason", "risk", "exit_code"),
     [
-        (True, ExecutionPrediction.NO_OP, NoOpReason.TARGET_MISSING_IF_EXISTS, Risk.SAFE),
-        (False, ExecutionPrediction.WOULD_FAIL, None, Risk.CRITICAL),
+        (True, ExecutionPrediction.NO_OP, NoOpReason.TARGET_MISSING_IF_EXISTS, Risk.SAFE, 0),
+        (False, ExecutionPrediction.WOULD_FAIL, None, Risk.CRITICAL, 2),
     ],
 )
 def test_missing_table_matrix(
@@ -269,6 +269,7 @@ def test_missing_table_matrix(
     prediction: ExecutionPrediction,
     reason: NoOpReason | None,
     risk: Risk,
+    exit_code: int,
 ) -> None:
     conn_cfg, safety = configs
     from pginspect.impact.parser.ast import TableRef
@@ -319,17 +320,17 @@ def test_missing_table_matrix(
     assert result.statements[0].no_op_reason is reason
     assert result.statements[0].risk is risk
     assert result.statements[0].analysis_status is AnalysisStatus.ANALYZED
+    assert result.exit_code == exit_code
     drop_rule.assert_not_called()
     type_rule.assert_not_called()
     add_rule.assert_not_called()
-    assert "rollback" in fake_conn.rollbacks or True  # force_rollback helper path
 
 
 @pytest.mark.parametrize(
-    ("col_if_exists", "prediction", "reason", "risk"),
+    ("col_if_exists", "prediction", "reason", "risk", "exit_code"),
     [
-        (True, ExecutionPrediction.NO_OP, NoOpReason.COLUMN_MISSING_IF_EXISTS, Risk.WARNING),
-        (False, ExecutionPrediction.WOULD_FAIL, None, Risk.CRITICAL),
+        (True, ExecutionPrediction.NO_OP, NoOpReason.COLUMN_MISSING_IF_EXISTS, Risk.SAFE, 0),
+        (False, ExecutionPrediction.WOULD_FAIL, None, Risk.CRITICAL, 2),
     ],
 )
 def test_missing_column_matrix(
@@ -338,6 +339,7 @@ def test_missing_column_matrix(
     prediction: ExecutionPrediction,
     reason: NoOpReason | None,
     risk: Risk,
+    exit_code: int,
 ) -> None:
     conn_cfg, safety = configs
     from pginspect.impact.parser.ast import TableRef
@@ -399,9 +401,95 @@ def test_missing_column_matrix(
     assert result.statements[0].execution_prediction is prediction
     assert result.statements[0].no_op_reason is reason
     assert result.statements[0].risk is risk
+    assert result.exit_code == exit_code
     drop_rule.assert_not_called()
     type_rule.assert_not_called()
     add_rule.assert_not_called()
+
+
+def test_noop_cards_do_not_raise_exit_in_mixed_script(
+    configs: tuple[ConnectionConfig, SessionSafetyConfig],
+) -> None:
+    """Proven IF EXISTS no-ops contribute exit 0 and do not raise a mixed script."""
+    conn_cfg, safety = configs
+    from pginspect.impact.parser.ast import TableRef
+
+    missing_table = SupportedAlterDrop(
+        table=TableRef(if_exists=True, qualified_name=_qn("public", "missing")),
+        column=_ident("c"),
+        if_exists=False,
+        drop_behavior_written="default",
+        effective_behavior="restrict",
+    )
+    missing_column = SupportedAlterDrop(
+        table=TableRef(if_exists=False, qualified_name=_qn("public", "t")),
+        column=_ident("gone"),
+        if_exists=True,
+        drop_behavior_written="default",
+        effective_behavior="restrict",
+    )
+    relation = __import__(
+        "pginspect.impact.models.catalog_types", fromlist=["RelationSnapshot"]
+    ).RelationSnapshot(
+        oid=10,
+        nspname="public",
+        relname="t",
+        relkind="r",
+        relpersistence="p",
+        relispartition=False,
+        inherits_parents=(),
+        inherits_children=(),
+        columns=(),
+        indexes=(),
+        constraints=(),
+    )
+    fake_conn = _FakeConn([])
+
+    class _CM:
+        def __enter__(self) -> _FakeConn:
+            return fake_conn
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+    session = MagicMock()
+    session.establish_impact_profile.return_value = _profile()
+    session.as_query_executor.return_value = MagicMock()
+    classifications = iter([missing_table, missing_column])
+    resolutions = iter(
+        [
+            RelationResolution("not_found", None, None, None, None),
+            RelationResolution("resolved", 10, "public", "t", None),
+        ]
+    )
+
+    with (
+        patch(
+            "pginspect.impact.run.parse_migration_path",
+            return_value=_script(_local_stmt(1), _local_stmt(2)),
+        ),
+        patch("pginspect.impact.run.open_connection", return_value=_CM()),
+        patch("pginspect.impact.run.DiagnosticSession", return_value=session),
+        patch(
+            "pginspect.impact.run.evaluate_preflight_gates",
+            return_value=PreflightEvaluation(False, ()),
+        ),
+        patch(
+            "pginspect.impact.run.classify_noncontrol_statement",
+            side_effect=lambda *a, **k: next(classifications),
+        ),
+        patch(
+            "pginspect.impact.run.resolve_relation",
+            side_effect=lambda **k: next(resolutions),
+        ),
+        patch("pginspect.impact.run.fetch_relation_snapshot", return_value=relation),
+    ):
+        result = run_impact(Path("migration.sql"), conn_cfg, safety)
+
+    assert result.outcome is Outcome.COMPLETED
+    assert result.exit_code == 0
+    assert {c.risk for c in result.statements} == {Risk.SAFE}
+    assert all(c.execution_prediction is ExecutionPrediction.NO_OP for c in result.statements)
 
 
 def test_preflight_incomplete_empty_statements(

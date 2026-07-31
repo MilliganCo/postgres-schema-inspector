@@ -168,6 +168,21 @@ def test_deterministic_target_missing_if_exists_is_safe() -> None:
     )
 
 
+def test_deterministic_column_missing_if_exists_is_safe() -> None:
+    """Owner Layer D: proven column IF EXISTS no-op is safe, not warning."""
+    assert (
+        _risk(
+            execution_prediction=ExecutionPrediction.NO_OP,
+            lock=LockMode.ACCESS_EXCLUSIVE_LOCK,  # even if caller passes AE
+            table_rewrite=NO,
+            table_scan=NO,
+            index_rebuild=NO,
+            no_op_reason=NoOpReason.COLUMN_MISSING_IF_EXISTS,
+        )
+        is Risk.SAFE
+    )
+
+
 @pytest.mark.parametrize(
     "analysis_status",
     [

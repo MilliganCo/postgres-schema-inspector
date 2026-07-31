@@ -49,6 +49,17 @@ def _card(
     )
 
 
+def test_aggregate_exit_safe_noop_is_zero() -> None:
+    assert (
+        aggregate_exit_code(
+            statements=(
+                StatementExitRow(AnalysisStatus.ANALYZED, ExecutionPrediction.NO_OP, Risk.SAFE),
+            )
+        )
+        == 0
+    )
+
+
 def test_aggregate_exit_all_clear_is_zero() -> None:
     assert (
         aggregate_exit_code(

@@ -60,11 +60,10 @@ def derive_risk(
     reports `not_applicable`: the required evidence was unavailable, so no
     risk claim can be made.
 
-    `target_missing_if_exists` is checked before the lock-only warning even
-    though design section 3.3 lists it after: section 3.5 pins that no-op to
-    `lock=not_applicable`, so the order is unobservable for well-formed
-    input and this way the "deterministic no-op is safe" claim holds
-    regardless of the lock the caller passes.
+    Deterministic IF EXISTS no-ops (`target_missing_if_exists` and
+    `column_missing_if_exists`) are checked before the lock-only warning:
+    a proven no-op contributes risk=safe and must not raise the process
+    exit above 0 (owner Layer D remediation).
     """
     if analysis_status is not AnalysisStatus.ANALYZED:
         return Risk.NOT_APPLICABLE
@@ -80,7 +79,10 @@ def derive_risk(
         return Risk.CRITICAL
     if cascade_dependents:
         return Risk.CRITICAL
-    if no_op_reason is NoOpReason.TARGET_MISSING_IF_EXISTS:
+    if no_op_reason in {
+        NoOpReason.TARGET_MISSING_IF_EXISTS,
+        NoOpReason.COLUMN_MISSING_IF_EXISTS,
+    }:
         return Risk.SAFE
     if (
         lock is LockMode.ACCESS_EXCLUSIVE_LOCK
