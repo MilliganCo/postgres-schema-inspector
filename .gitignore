@@ -44,3 +44,8 @@ Thumbs.db
 
 # Local smoke / scratch
 .venv-smoke/
+
+# Demo recorder diagnostic sidecars
+docs/superpowers/demos/recordings/*.stderr.txt
+docs/superpowers/demos/recordings/*.tmp
+docs/superpowers/demos/recordings/*.txt.tmp

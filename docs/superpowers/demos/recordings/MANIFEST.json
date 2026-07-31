@@ -1,0 +1,51 @@
+{
+  "recorded_against_commit": "96d61a741a37710ae9e76c32cf75f7380bee86db",
+  "recording_postgresql_major": 16,
+  "recordings": [
+    {
+      "fixture_id": "T1",
+      "command": [
+        "python",
+        "scripts/record_impact_demo.py",
+        "--fixture",
+        "T1",
+        "--out",
+        "docs/superpowers/demos/recordings/T1.txt"
+      ],
+      "path": "docs/superpowers/demos/recordings/T1.txt"
+    },
+    {
+      "fixture_id": "A4",
+      "command": [
+        "python",
+        "scripts/record_impact_demo.py",
+        "--fixture",
+        "A4",
+        "--out",
+        "docs/superpowers/demos/recordings/A4.txt"
+      ],
+      "path": "docs/superpowers/demos/recordings/A4.txt"
+    },
+    {
+      "fixture_id": "D2",
+      "command": [
+        "python",
+        "scripts/record_impact_demo.py",
+        "--fixture",
+        "D2",
+        "--out",
+        "docs/superpowers/demos/recordings/D2.txt"
+      ],
+      "path": "docs/superpowers/demos/recordings/D2.txt"
+    }
+  ],
+  "redaction_verification": {
+    "forbidden_substrings_absent": [
+      "password=",
+      "PGPASSWORD",
+      ":5432/",
+      "/home/",
+      "C:\\"
+    ]
+  }
+}

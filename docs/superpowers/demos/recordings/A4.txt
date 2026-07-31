@@ -1,0 +1,13 @@
+Impact: completed (exit 2)
+Input: migration.sql (1 cards, 1 statements)
+Overall risk: critical
+Incomplete: no
+Server: 16.14 (Debian 16.14-1.pgdg13+1) (major 16, db postgres)
+
+Statements:
+  #1 [analyzed] risk=critical execution=may_fail
+    preview: ALTER TABLE impact_a4 . t ADD COLUMN required_col text NOT NULL
+    lock=AccessExclusiveLock rewrite=no scan=possible index_rebuild=no
+    why: A NOT NULL column without an effective DEFAULT fails if the table holds any row.
+    limitation: Table emptiness is not proven from catalog evidence (n_live_tup is an estimate).
+    limitation: Authorization failures are not modeled; analysis assumes sufficient privileges.

@@ -1,0 +1,13 @@
+Impact: completed (exit 2)
+Input: migration.sql (1 cards, 1 statements)
+Overall risk: critical
+Incomplete: no
+Server: 16.14 (Debian 16.14-1.pgdg13+1) (major 16, db postgres)
+
+Statements:
+  #1 [analyzed] risk=critical execution=would_fail
+    preview: ALTER TABLE impact_d2 . t DROP COLUMN secret RESTRICT
+    lock=AccessExclusiveLock rewrite=no scan=no index_rebuild=no
+    why: 1 catalog-proven external dependent object(s) block the drop under RESTRICT (written or default) behavior.
+    limitation: Only catalog-proven dependencies are detected; textual or dynamically built references to the column are undetectable.
+    limitation: Authorization failures are not modeled; analysis assumes sufficient privileges.

@@ -1,0 +1,12 @@
+Impact: completed (exit 2)
+Input: migration.sql (1 cards, 1 statements)
+Overall risk: critical
+Incomplete: no
+Server: 16.14 (Debian 16.14-1.pgdg13+1) (major 16, db postgres)
+
+Statements:
+  #1 [analyzed] risk=critical execution=applies
+    preview: ALTER TABLE impact_t1 . t ALTER COLUMN payload TYPE text
+    lock=AccessExclusiveLock rewrite=yes scan=yes index_rebuild=yes
+    why: integer -> text has a proven non-binary coercion, so every row is rewritten
+    limitation: Authorization failures are not modeled; analysis assumes sufficient privileges.
