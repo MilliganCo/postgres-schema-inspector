@@ -1,0 +1,6 @@
+DROP SCHEMA IF EXISTS impact_s2_a CASCADE;
+DROP SCHEMA IF EXISTS impact_s2_b CASCADE;
+CREATE SCHEMA impact_s2_a;
+CREATE SCHEMA impact_s2_b;
+CREATE TABLE impact_s2_a.t (id int PRIMARY KEY);
+CREATE TABLE impact_s2_b.t (id int PRIMARY KEY);

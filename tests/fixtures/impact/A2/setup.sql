@@ -1,0 +1,3 @@
+DROP SCHEMA IF EXISTS impact_a2 CASCADE;
+CREATE SCHEMA impact_a2;
+CREATE TABLE impact_a2.t (id int PRIMARY KEY);

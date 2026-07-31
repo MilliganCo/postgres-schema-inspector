@@ -1,0 +1,2 @@
+DROP SCHEMA IF EXISTS impact_s2_m CASCADE;
+CREATE SCHEMA impact_s2_m;

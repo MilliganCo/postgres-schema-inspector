@@ -1,0 +1,17 @@
+{
+  "outcome": "incomplete",
+  "exit_code": 3,
+  "cards": [
+    {
+      "analysis_status": "analyzed",
+      "execution_prediction": "applies",
+      "risk": "warning",
+      "evidence_ids": ["rule:add.nullable.no_default"]
+    },
+    {
+      "analysis_status": "unsupported_parser",
+      "execution_prediction": "not_evaluated",
+      "risk": "not_applicable"
+    }
+  ]
+}

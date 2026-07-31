@@ -1,0 +1,1 @@
+ALTER TABLE impact_d3.t DROP COLUMN secret CASCADE;

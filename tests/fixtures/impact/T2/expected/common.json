@@ -1,0 +1,20 @@
+{
+  "outcome": "completed",
+  "exit_code": 1,
+  "cards": [
+    {
+      "analysis_status": "analyzed",
+      "execution_prediction": "applies",
+      "table_rewrite": "no",
+      "table_scan": "no",
+      "index_rebuild": "no",
+      "lock": "AccessExclusiveLock",
+      "risk": "warning",
+      "evidence_ids": [
+        "rule:type.binary.text_to_varchar.same_collation.no_domain.no_using",
+        "coercion:text_to_varchar_binary",
+        "index:impact_t2_label_idx"
+      ]
+    }
+  ]
+}

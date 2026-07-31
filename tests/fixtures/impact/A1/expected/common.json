@@ -1,0 +1,19 @@
+{
+  "outcome": "completed",
+  "exit_code": 1,
+  "cards": [
+    {
+      "analysis_status": "analyzed",
+      "execution_prediction": "applies",
+      "table_rewrite": "no",
+      "table_scan": "no",
+      "index_rebuild": "no",
+      "lock": "AccessExclusiveLock",
+      "risk": "warning",
+      "evidence_ids": ["rule:add.nullable.no_default"],
+      "limitations_contains": [
+        "Authorization failures are not modeled; analysis assumes sufficient privileges."
+      ]
+    }
+  ]
+}

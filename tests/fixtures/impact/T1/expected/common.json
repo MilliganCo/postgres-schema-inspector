@@ -1,0 +1,23 @@
+{
+  "outcome": "completed",
+  "exit_code": 2,
+  "cards": [
+    {
+      "analysis_status": "analyzed",
+      "execution_prediction": "applies",
+      "table_rewrite": "yes",
+      "table_scan": "yes",
+      "index_rebuild": "yes",
+      "lock": "AccessExclusiveLock",
+      "risk": "critical",
+      "evidence_ids": [
+        "rule:type.proven_rewrite",
+        "coercion:integer_to_text_assignment",
+        "index:impact_t1_payload_idx"
+      ],
+      "limitations_contains": [
+        "Authorization failures are not modeled; analysis assumes sufficient privileges."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+ALTER TABLE impact_d2.t DROP COLUMN secret RESTRICT;

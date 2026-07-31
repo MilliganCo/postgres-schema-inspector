@@ -1,0 +1,20 @@
+{
+  "outcome": "completed",
+  "exit_code": 2,
+  "cards": [
+    {
+      "analysis_status": "analyzed",
+      "execution_prediction": "may_fail",
+      "table_rewrite": "no",
+      "table_scan": "possible",
+      "index_rebuild": "no",
+      "lock": "AccessExclusiveLock",
+      "risk": "critical",
+      "evidence_ids": ["rule:add.not_null.no_default"],
+      "limitations_contains": [
+        "Table emptiness is not proven from catalog evidence (n_live_tup is an estimate).",
+        "Authorization failures are not modeled; analysis assumes sufficient privileges."
+      ]
+    }
+  ]
+}

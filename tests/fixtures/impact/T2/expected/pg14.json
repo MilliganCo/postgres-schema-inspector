@@ -1,0 +1,9 @@
+{
+  "exit_code": 2,
+  "cards": [
+    {
+      "index_rebuild": "yes",
+      "risk": "critical"
+    }
+  ]
+}
