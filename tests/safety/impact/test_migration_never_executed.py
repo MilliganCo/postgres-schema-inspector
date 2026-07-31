@@ -34,8 +34,10 @@ def test_migration_statement_never_appears_in_executable_sql(
         path = canary_migration_path(tmp_path)
         # Use real T1 migration body plus canary marker already in helper text.
         path.write_text(
-            (Path("tests/fixtures/impact/T1/migration.sql").read_text(encoding="utf-8")
-             + "\n-- CANARY_MIGRATION_MUST_NEVER_EXECUTE\n"),
+            (
+                Path("tests/fixtures/impact/T1/migration.sql").read_text(encoding="utf-8")
+                + "\n-- CANARY_MIGRATION_MUST_NEVER_EXECUTE\n"
+            ),
             encoding="utf-8",
         )
         result = run_impact(path, subject_connection_config, SessionSafetyConfig())

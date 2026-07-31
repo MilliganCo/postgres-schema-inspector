@@ -123,7 +123,9 @@ def test_impact_query_registry_sql_is_literal_and_immutable() -> None:
     for query_id, spec in IMPACT_QUERY_REGISTRY.items():
         assert query_id == spec.query_id
         assert isinstance(spec.sql, str)
-        assert "pg_" in spec.sql or spec.command_kind in {"BEGIN", "SET"} or "set_config" in spec.sql
+        assert (
+            "pg_" in spec.sql or spec.command_kind in {"BEGIN", "SET"} or "set_config" in spec.sql
+        )
     with pytest.raises(TypeError):
         IMPACT_QUERY_REGISTRY["x"] = None  # type: ignore[index]
 

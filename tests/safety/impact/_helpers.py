@@ -11,8 +11,7 @@ from pginspect.impact.queries import IMPACT_QUERY_REGISTRY
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[2] / "fixtures" / "impact"
 CANARY_MIGRATION = (
-    "ALTER TABLE impact_t1.t ALTER COLUMN payload TYPE text; "
-    "-- CANARY_MIGRATION_MUST_NEVER_EXECUTE"
+    "ALTER TABLE impact_t1.t ALTER COLUMN payload TYPE text; -- CANARY_MIGRATION_MUST_NEVER_EXECUTE"
 )
 
 
