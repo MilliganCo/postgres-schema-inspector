@@ -24,6 +24,7 @@ from types import MappingProxyType
 from typing import Literal, LiteralString
 
 from pginspect.impact.query_rows import (
+    CatalogClassOidRow,
     ColumnRow,
     ConstraintRow,
     DependencyEdgeRow,
@@ -377,6 +378,16 @@ ORDER BY d.classid, d.objid, d.objsubid
 LIMIT %s
 """
 
+# Live OID of pg_catalog.pg_class for pg_depend.classid / refclassid roots
+# (design section 2.8). Never hardcode a numeric catalog OID.
+IMPACT_FETCH_PG_CLASS_CLASSOID_SQL: LiteralString = """
+SELECT c.oid AS classoid
+FROM pg_catalog.pg_class c
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'pg_catalog'
+  AND c.relname = 'pg_class'
+"""
+
 IMPACT_FETCH_RELATION_METRICS_SQL: LiteralString = """
 WITH target AS (SELECT %s::oid AS relid)
 SELECT
@@ -490,6 +501,14 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         param_types=(int, int, int, int),
         row_model=DependencyEdgeRow,
         required_evidence_family="dependency_edge",
+        command_kind="SELECT",
+    ),
+    QuerySpec(
+        query_id="impact.fetch_pg_class_classoid",
+        sql=IMPACT_FETCH_PG_CLASS_CLASSOID_SQL,
+        param_types=(),
+        row_model=CatalogClassOidRow,
+        required_evidence_family="catalog_object",
         command_kind="SELECT",
     ),
     QuerySpec(

@@ -38,6 +38,8 @@ __all__ = [
     "fetch_function_snapshot",
     "fetch_relation_metrics",
     "fetch_pg_cast_rows",
+    "fetch_pg_class_classoid",
+    "drop_column_dependency_root",
     "gather_dependency_edges",
     "build_metric_observation",
 ]
@@ -250,6 +252,39 @@ def fetch_pg_cast_rows(
         )
         for row in rows
     )
+
+
+def fetch_pg_class_classoid(executor: QueryExecutor) -> int | None:
+    """Return the live OID of `pg_catalog.pg_class`, or None if unreadable.
+
+    This is the only sanctioned source of `pg_depend.classid` /
+    `refclassid` for relation/column addresses. Callers must not invent a
+    numeric constant.
+    """
+    row = executor.fetch_one("impact.fetch_pg_class_classoid", ())
+    if row is None:
+        return None
+    classoid = _as_int(row["classoid"])
+    return classoid if classoid > 0 else None
+
+
+def drop_column_dependency_root(
+    *,
+    pg_class_classoid: int,
+    relation_oid: int,
+    column_attnum: int,
+) -> tuple[int, int, int]:
+    """Build the `(refclassid, refobjid, refobjsubid)` root for DROP COLUMN.
+
+    Column-level addresses use the column's `attnum` as `objsubid`. A
+    relation-level root (`objsubid=0`) is deliberately not produced here so
+    column and relation dependency sets are never mixed.
+    """
+    if pg_class_classoid <= 0:
+        raise ValueError("pg_class classoid must be a positive catalog OID")
+    if column_attnum <= 0:
+        raise ValueError("DROP COLUMN dependency root requires a positive attnum")
+    return (pg_class_classoid, relation_oid, column_attnum)
 
 
 def _row_to_dependency_edge(row: Mapping[str, object]) -> DependencyEdge:

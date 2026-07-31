@@ -42,6 +42,7 @@ __all__ = [
     "FunctionRow",
     "DependencyEdgeRow",
     "RelationMetricsRow",
+    "CatalogClassOidRow",
     "PgCastRow",
 ]
 
@@ -248,6 +249,13 @@ class DependencyEdgeRow:
     refobjid: int
     refobjsubid: int
     deptype: str
+
+
+@dataclass(frozen=True)
+class CatalogClassOidRow:
+    """`impact.fetch_pg_class_classoid` — live OID of `pg_catalog.pg_class`."""
+
+    classoid: int
 
 
 @dataclass(frozen=True)

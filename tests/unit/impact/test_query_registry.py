@@ -32,6 +32,7 @@ def test_registry_contains_required_query_ids() -> None:
         "impact.fetch_constraints",
         "impact.fetch_function",
         "impact.fetch_dependency_edges",
+        "impact.fetch_pg_class_classoid",
         "impact.fetch_relation_metrics",
         "impact.fetch_pg_cast",
     }
@@ -109,6 +110,7 @@ def test_expected_row_models_are_wired_to_their_query_ids() -> None:
         "impact.fetch_constraints": "ConstraintRow",
         "impact.fetch_function": "FunctionRow",
         "impact.fetch_dependency_edges": "DependencyEdgeRow",
+        "impact.fetch_pg_class_classoid": "CatalogClassOidRow",
         "impact.fetch_relation_metrics": "RelationMetricsRow",
         "impact.fetch_pg_cast": "PgCastRow",
     }
@@ -266,6 +268,7 @@ def test_catalog_query_sql_is_schema_qualified_pg_catalog() -> None:
         "impact.fetch_constraints",
         "impact.fetch_function",
         "impact.fetch_dependency_edges",
+        "impact.fetch_pg_class_classoid",
         "impact.fetch_relation_metrics",
         "impact.fetch_pg_cast",
     }

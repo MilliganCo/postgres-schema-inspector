@@ -43,7 +43,9 @@ from pginspect.exceptions import (
 )
 from pginspect.impact.analysis_unit import AnalysisUnit
 from pginspect.impact.catalog import (
+    drop_column_dependency_root,
     fetch_pg_cast_rows,
+    fetch_pg_class_classoid,
     fetch_relation_metrics,
     fetch_relation_snapshot,
     fetch_type_snapshot,
@@ -794,9 +796,27 @@ def _build_unit_for_statement(
                 table_name=relation.relname,
                 column_normalized_name=column_name,
             )
+        pg_class_classoid = fetch_pg_class_classoid(executor)
+        if pg_class_classoid is None:
+            return _unit_base(
+                stmt,
+                family=family,
+                ast=classified,
+                status=AnalysisStatus.UNSUPPORTED_EVIDENCE,
+                table_oid=relation.oid,
+                table_schema=relation.nspname,
+                table_name=relation.relname,
+                column_attnum=column.attnum,
+                column_normalized_name=column_name,
+            )
+        root = drop_column_dependency_root(
+            pg_class_classoid=pg_class_classoid,
+            relation_oid=relation.oid,
+            column_attnum=column.attnum,
+        )
         dependency_edges, truncated_at_limit = gather_dependency_edges(
             executor,
-            roots=((0, relation.oid, column.attnum),),
+            roots=(root,),
         )
         dependency_graph_complete = not truncated_at_limit
 
