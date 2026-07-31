@@ -110,8 +110,10 @@ def record_execution(
 def validate_params(spec: QuerySpec, params: tuple[Any, ...]) -> None:
     """Reject parameter arity/type drift before any database work happens.
 
-    `tuple` in `param_types` means "PostgreSQL array parameter": psycopg
-    accepts both lists and tuples there, and both are accepted here.
+    `tuple` in `param_types` means "PostgreSQL array parameter". Callers may
+    pass a Python `list` or `tuple` of elements; `normalize_array_params`
+    converts tuples to lists before psycopg sees them, because a Python tuple
+    is adapted as a composite/record rather than a text[].
     """
     if not isinstance(params, tuple):
         raise ParameterValidationError(
@@ -136,6 +138,17 @@ def validate_params(spec: QuerySpec, params: tuple[Any, ...]) -> None:
                 f"{spec.query_id}: parameter {index} expected {expected.__name__}, "
                 f"got {type(value).__name__}"
             )
+
+
+def normalize_array_params(spec: QuerySpec, params: tuple[Any, ...]) -> tuple[Any, ...]:
+    """Ensure array-typed parameters are lists for psycopg array adaptation."""
+    normalized: list[Any] = []
+    for value, expected in zip(params, spec.param_types, strict=True):
+        if expected is tuple and isinstance(value, tuple):
+            normalized.append(list(value))
+        else:
+            normalized.append(value)
+    return tuple(normalized)
 
 
 @runtime_checkable
@@ -177,15 +190,16 @@ def execute_allowlisted(
     if fetch not in _FETCH_MODES:
         raise ParameterValidationError(f"{spec.query_id}: unsupported fetch mode {fetch!r}")
     validate_params(spec, params)
+    bound = normalize_array_params(spec, params)
 
-    raw = session._execute_allowlisted_query(spec, params, fetch=fetch)
+    raw = session._execute_allowlisted_query(spec, bound, fetch=fetch)
 
     if recorder is not None:
         recorder(
             QueryExecutionEvent(
                 query_id=spec.query_id,
                 sql_text=spec.sql,
-                bound_parameters=params,
+                bound_parameters=bound,
                 command_kind=spec.command_kind,
             )
         )

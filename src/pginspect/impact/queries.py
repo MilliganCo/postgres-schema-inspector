@@ -38,6 +38,7 @@ from pginspect.impact.query_rows import (
     RelationMetricsRow,
     RelationRow,
     ResolutionCaptureRow,
+    RewriteEvClassRow,
     SafetyVerifyRow,
     TypeCandidateRow,
     TypeRow,
@@ -214,7 +215,10 @@ FROM pg_catalog.pg_proc p
 JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = ANY(%s)
   AND p.proname = %s
-  AND p.proargtypes::oid[] = %s::oid[]
+  AND CASE
+        WHEN COALESCE(array_length(%s::oid[], 1), 0) = 0 THEN p.pronargs = 0
+        ELSE p.proargtypes::oid[] = %s::oid[]
+      END
 """
 
 # --- Catalog object QuerySpecs (design section 2.8): one relation/type/
@@ -388,6 +392,12 @@ WHERE n.nspname = 'pg_catalog'
   AND c.relname = 'pg_class'
 """
 
+IMPACT_FETCH_REWRITE_EV_CLASS_SQL: LiteralString = """
+SELECT r.ev_class AS ev_class
+FROM pg_catalog.pg_rewrite r
+WHERE r.oid = %s
+"""
+
 IMPACT_FETCH_RELATION_METRICS_SQL: LiteralString = """
 WITH target AS (SELECT %s::oid AS relid)
 SELECT
@@ -434,7 +444,7 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
     QuerySpec(
         query_id="impact.resolve_function_candidates",
         sql=IMPACT_RESOLVE_FUNCTION_CANDIDATES_SQL,
-        param_types=(tuple, str, tuple),
+        param_types=(tuple, str, tuple, tuple),
         row_model=FunctionCandidateRow,
         required_evidence_family="resolution",
         command_kind="SELECT",
@@ -509,6 +519,14 @@ _IMPACT_CATALOG_QUERY_SPECS: tuple[QuerySpec, ...] = (
         param_types=(),
         row_model=CatalogClassOidRow,
         required_evidence_family="catalog_object",
+        command_kind="SELECT",
+    ),
+    QuerySpec(
+        query_id="impact.fetch_rewrite_ev_class",
+        sql=IMPACT_FETCH_REWRITE_EV_CLASS_SQL,
+        param_types=(int,),
+        row_model=RewriteEvClassRow,
+        required_evidence_family="dependency_edge",
         command_kind="SELECT",
     ),
     QuerySpec(

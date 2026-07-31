@@ -43,6 +43,7 @@ __all__ = [
     "DependencyEdgeRow",
     "RelationMetricsRow",
     "CatalogClassOidRow",
+    "RewriteEvClassRow",
     "PgCastRow",
 ]
 
@@ -256,6 +257,13 @@ class CatalogClassOidRow:
     """`impact.fetch_pg_class_classoid` — live OID of `pg_catalog.pg_class`."""
 
     classoid: int
+
+
+@dataclass(frozen=True)
+class RewriteEvClassRow:
+    """`impact.fetch_rewrite_ev_class` — owning relation of a rewrite rule."""
+
+    ev_class: int
 
 
 @dataclass(frozen=True)

@@ -17,6 +17,7 @@ from typing import Literal, TypeVar
 
 from pginspect.impact.preflight import ResolutionContext
 from pginspect.impact.query_exec import QueryExecutor
+from pginspect.impact.type_names import catalog_typname
 
 ResolutionOutcomeStatus = Literal["resolved", "not_found", "unsupported_resolution"]
 
@@ -281,7 +282,9 @@ def resolve_type(
         )
 
     if schema is not None:
-        rows = executor.fetch_all("impact.resolve_type_candidates", ((schema,), name))
+        rows = executor.fetch_all(
+            "impact.resolve_type_candidates", ((schema,), catalog_typname(name))
+        )
         candidates = _type_rows_to_candidates(rows)
         if not candidates:
             return TypeResolution(
@@ -306,7 +309,8 @@ def resolve_type(
         )
 
     rows = executor.fetch_all(
-        "impact.resolve_type_candidates", (context.current_schemas_with_implicit, name)
+        "impact.resolve_type_candidates",
+        (context.current_schemas_with_implicit, catalog_typname(name)),
     )
     candidates = _type_rows_to_candidates(rows)
     winner = rank_type_candidates(candidates, context.current_schemas_with_implicit)
@@ -350,7 +354,10 @@ def resolve_function(
         )
 
     if schema is not None:
-        rows = executor.fetch_all("impact.resolve_function_candidates", ((schema,), name, argtypes))
+        rows = executor.fetch_all(
+            "impact.resolve_function_candidates",
+            ((schema,), name, argtypes, argtypes),
+        )
         candidates = _function_rows_to_candidates(rows)
         if not candidates:
             return FunctionResolution(
@@ -376,7 +383,7 @@ def resolve_function(
 
     rows = executor.fetch_all(
         "impact.resolve_function_candidates",
-        (context.current_schemas_with_implicit, name, argtypes),
+        (context.current_schemas_with_implicit, name, argtypes, argtypes),
     )
     candidates = _function_rows_to_candidates(rows)
     winner = rank_function_candidates(candidates, context.current_schemas_with_implicit)

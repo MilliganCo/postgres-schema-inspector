@@ -102,6 +102,7 @@ class TypeChangeFacts:
     using_present: bool = False
     using_identity_proven: bool = False
     affected_indexes_exist: bool = False
+    index_names: tuple[str, ...] = ()
     metrics_present: bool = True
     pg_cast_rows: tuple[PgCastRow, ...] = ()
     table_exists: bool = True
@@ -294,6 +295,8 @@ def _build(
     evidence_ids = [f"rule:{rule_key}"]
     if coercion_evidence_id is not None and coercion_evidence_id not in evidence_ids:
         evidence_ids.append(coercion_evidence_id)
+    if index_rebuild in (_YES, _POSSIBLE) or facts.affected_indexes_exist:
+        evidence_ids.extend(f"index:{name}" for name in facts.index_names)
     return RuleVerdict(
         rule_key=rule_key,
         analysis_status=AnalysisStatus.ANALYZED,

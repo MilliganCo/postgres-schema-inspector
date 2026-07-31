@@ -44,6 +44,7 @@ from pginspect.exceptions import (
 from pginspect.impact.analysis_unit import AnalysisUnit
 from pginspect.impact.catalog import (
     drop_column_dependency_root,
+    fetch_function_snapshot,
     fetch_pg_cast_rows,
     fetch_pg_class_classoid,
     fetch_relation_metrics,
@@ -54,6 +55,7 @@ from pginspect.impact.catalog import (
 from pginspect.impact.models.card import ImpactConfidence, ImpactStatementCard
 from pginspect.impact.models.catalog_types import (
     ColumnSnapshot,
+    FunctionSnapshot,
     RelationSnapshot,
     TypeSnapshot,
 )
@@ -90,17 +92,20 @@ from pginspect.impact.parser.ast import (
     SupportedAlterAdd,
     SupportedAlterDrop,
     SupportedAlterType,
+    Token,
+    TokenKind,
     UnsupportedParserAst,
 )
 from pginspect.impact.parser.classify import classify_noncontrol_statement
 from pginspect.impact.preflight import ResolutionContext, evaluate_preflight_gates
-from pginspect.impact.resolve import resolve_relation, resolve_type
+from pginspect.impact.resolve import resolve_function, resolve_relation, resolve_type
 from pginspect.impact.rules.add_column import AddColumnFacts, evaluate_add_column
 from pginspect.impact.rules.contracts import AUTHORIZATION_LIMITATION, RuleVerdict
 from pginspect.impact.rules.drop_column import DropColumnFacts, evaluate_drop_column
 from pginspect.impact.rules.severity import aggregate_exit_code
 from pginspect.impact.rules.type_change import TypeChangeFacts, evaluate_type_change
 from pginspect.impact.sequence import apply_sequence_constraints
+from pginspect.impact.type_names import sql_typname
 from pginspect.models.enums import (
     ClassificationSource,
     ExecutionErrorCategory,
@@ -153,6 +158,11 @@ class CatalogBoundPayload:
     if_not_exists: bool
     nullability: Literal["unspecified", "null", "not_null"] | None
     has_default_tokens: bool
+    dependency_evidence_ids: tuple[str, ...] = ()
+    default_function: FunctionSnapshot | None = None
+    default_volatility: Literal["proven_nonvolatile", "proven_volatile", "unknown"] | None = None
+    default_coercion: Literal["proven_valid", "proven_invalid", "unknown"] | None = None
+    default_nullability: Literal["proven_nonnull", "proven_null", "unknown"] | None = None
 
 
 def _now() -> datetime:
@@ -649,6 +659,23 @@ def _build_unit_for_statement(
             column_normalized_name=column_name,
         )
 
+    if (
+        relation.relkind == "p"
+        or relation.relispartition
+        or relation.inherits_parents
+        or relation.inherits_children
+    ):
+        return _unit_base(
+            stmt,
+            family=family,
+            ast=classified,
+            status=AnalysisStatus.UNSUPPORTED_SCOPE,
+            table_oid=relation.oid,
+            table_schema=relation.nspname,
+            table_name=relation.relname,
+            column_normalized_name=column_name,
+        )
+
     column = _find_column(relation, column_name)
 
     if isinstance(classified, (SupportedAlterDrop, SupportedAlterType)) and column is None:
@@ -706,6 +733,11 @@ def _build_unit_for_statement(
     if_not_exists = False
     nullability: Literal["unspecified", "null", "not_null"] | None = None
     has_default_tokens = False
+    dependency_evidence_ids: tuple[str, ...] = ()
+    default_function: FunctionSnapshot | None = None
+    default_volatility: Literal["proven_nonvolatile", "proven_volatile", "unknown"] | None = None
+    default_coercion: Literal["proven_valid", "proven_invalid", "unknown"] | None = None
+    default_nullability: Literal["proven_nonnull", "proven_null", "unknown"] | None = None
 
     if isinstance(classified, SupportedAlterType):
         using_present = bool(classified.using_expression_tokens)
@@ -777,6 +809,17 @@ def _build_unit_for_statement(
                 table_name=relation.relname,
                 column_normalized_name=column_name,
             )
+        if has_default_tokens:
+            (
+                default_volatility,
+                default_coercion,
+                default_nullability,
+                default_function,
+            ) = _classify_allowlisted_default(
+                classified.default_expression_tokens,
+                context=context,
+                executor=executor,
+            )
 
     elif isinstance(classified, SupportedAlterDrop):
         effective_behavior = classified.effective_behavior
@@ -814,6 +857,7 @@ def _build_unit_for_statement(
             roots=(root,),
         )
         dependency_graph_complete = not truncated_at_limit
+        dependency_evidence_ids = _dependency_evidence_ids(executor, dependency_edges)
 
     payload = CatalogBoundPayload(
         family=family,
@@ -833,6 +877,11 @@ def _build_unit_for_statement(
         if_not_exists=if_not_exists,
         nullability=nullability,
         has_default_tokens=has_default_tokens,
+        dependency_evidence_ids=dependency_evidence_ids,
+        default_function=default_function,
+        default_volatility=default_volatility,
+        default_coercion=default_coercion,
+        default_nullability=default_nullability,
     )
     return _unit_base(
         stmt,
@@ -847,6 +896,94 @@ def _build_unit_for_statement(
         resolution_payload=payload,
         requires_virtual_schema_state=isinstance(classified, SupportedAlterAdd),
     )
+
+
+def _classify_allowlisted_default(
+    tokens: tuple[Token, ...],
+    *,
+    context: ResolutionContext,
+    executor: Any,
+) -> tuple[
+    Literal["proven_nonvolatile", "proven_volatile", "unknown"],
+    Literal["proven_valid", "proven_invalid", "unknown"],
+    Literal["proven_nonnull", "proven_null", "unknown"],
+    FunctionSnapshot | None,
+]:
+    """Classify a small allowlist of DEFAULT expressions for Demo fixtures.
+
+    Non-allowlisted expressions remain `unknown` (accepted Layer D deviation 4).
+    """
+    unknown: tuple[
+        Literal["unknown"],
+        Literal["unknown"],
+        Literal["unknown"],
+        None,
+    ] = ("unknown", "unknown", "unknown", None)
+    if not tokens:
+        return unknown
+
+    if len(tokens) == 1:
+        tok = tokens[0]
+        if tok.kind is TokenKind.NUMERIC_LITERAL:
+            return ("proven_nonvolatile", "proven_valid", "proven_nonnull", None)
+        if tok.kind is TokenKind.STRING_LITERAL:
+            return ("proven_nonvolatile", "proven_valid", "proven_nonnull", None)
+        if tok.kind is TokenKind.WORD and tok.normalized in {"true", "false"}:
+            return ("proven_nonvolatile", "proven_valid", "proven_nonnull", None)
+        if tok.kind is TokenKind.WORD and tok.normalized == "null":
+            return ("proven_nonvolatile", "proven_valid", "proven_null", None)
+
+    # pg_catalog.clock_timestamp()  OR  clock_timestamp()
+    words = [t for t in tokens if t.kind is not TokenKind.PUNCTUATION or t.raw in "()"]
+    normalized = " ".join(
+        t.normalized if t.kind is TokenKind.WORD else t.raw for t in tokens
+    ).replace(" ", "")
+    if normalized in {"pg_catalog.clock_timestamp()", "clock_timestamp()"}:
+        res = resolve_function(
+            schema="pg_catalog",
+            name="clock_timestamp",
+            argtypes=(),
+            context=context,
+            executor=executor,
+        )
+        if res.status != "resolved" or res.oid is None:
+            return unknown
+        snap = fetch_function_snapshot(executor, res.oid)
+        if snap is None:
+            return unknown
+        return ("proven_volatile", "proven_valid", "proven_nonnull", snap)
+
+    _ = words
+    return unknown
+
+
+def _dependency_evidence_ids(executor: Any, edges: tuple[Any, ...]) -> tuple[str, ...]:
+    """Name external/cascade dependents for card evidence (`dep:view:...`).
+
+    Column dependents frequently arrive as `pg_rewrite` rows (views). Those
+    are resolved through `ev_class` to the owning view relation before the
+    evidence id is emitted.
+    """
+    ids: list[str] = []
+    seen: set[str] = set()
+    for edge in edges:
+        if edge.bucket not in {"external_blocking", "cascade"}:
+            continue
+        snap = fetch_relation_snapshot(executor, edge.objid)
+        if snap is None:
+            rewrite_row = executor.fetch_one("impact.fetch_rewrite_ev_class", (edge.objid,))
+            if rewrite_row is not None:
+                snap = fetch_relation_snapshot(executor, int(rewrite_row["ev_class"]))
+        if snap is None:
+            continue
+        kind = {"v": "view", "m": "materialized_view", "r": "table", "p": "table"}.get(snap.relkind)
+        if kind is None:
+            continue
+        evidence_id = f"dep:{kind}:{snap.nspname}.{snap.relname}"
+        if evidence_id not in seen:
+            seen.add(evidence_id)
+            ids.append(evidence_id)
+    return tuple(ids)
 
 
 def _resolve_type_name(
@@ -914,17 +1051,22 @@ def _evaluate_unit(
         assert payload.target_type is not None
         facts = TypeChangeFacts(
             server_major=payload.server_major,
-            source_type_name=payload.source_type.typname,
-            target_type_name=payload.target_type.typname,
+            source_type_name=sql_typname(payload.source_type.typname),
+            target_type_name=sql_typname(payload.target_type.typname),
             source_typmod=payload.column.typmod,
             target_typmod=payload.target_type.typtypmod,
-            source_collation_oid=payload.column.collation_oid,
+            source_collation_oid=payload.column.collation_oid or None,
             target_collation_oid=payload.target_type.typcollation or None,
             source_is_domain=payload.source_type.typtype == "d",
             target_is_domain=payload.target_type.typtype == "d",
             using_present=payload.using_present,
             using_identity_proven=False,
             affected_indexes_exist=_indexes_on_column(payload.relation, payload.column.attnum),
+            index_names=tuple(
+                idx.relname
+                for idx in payload.relation.indexes
+                if payload.column.attnum in idx.indkey_attnums
+            ),
             metrics_present=payload.metrics_present,
             pg_cast_rows=tuple(payload.pg_cast_rows),
             table_exists=True,
@@ -943,9 +1085,9 @@ def _evaluate_unit(
             effective_kind: Literal[
                 "null", "explicit_null", "column_expression", "domain_expression"
             ] = "column_expression"
-            volatility: Literal["proven_nonvolatile", "proven_volatile", "unknown"] = "unknown"
-            coercion: Literal["proven_valid", "proven_invalid", "unknown"] = "unknown"
-            nullability_axis: Literal["proven_nonnull", "proven_null", "unknown"] = "unknown"
+            volatility = payload.default_volatility or "unknown"
+            coercion = payload.default_coercion or "unknown"
+            nullability_axis = payload.default_nullability or "unknown"
         elif has_domain_default:
             effective_kind = "domain_expression"
             volatility = "unknown"
@@ -968,6 +1110,7 @@ def _evaluate_unit(
             default_nullability=nullability_axis,
             domain_has_constraints=domain_has_constraints,
             target_type=payload.target_type,
+            default_function=payload.default_function,
             index_names=tuple(idx.relname for idx in payload.relation.indexes),
         )
         return _card_from_verdict(stmt, evaluate_add_column(facts_add))
@@ -985,7 +1128,25 @@ def _evaluate_unit(
         required_evidence_missing=False,
         metrics_present=payload.metrics_present,
     )
-    return _card_from_verdict(stmt, evaluate_drop_column(facts_drop))
+    verdict = evaluate_drop_column(facts_drop)
+    if payload.dependency_evidence_ids:
+        merged_ids = tuple(dict.fromkeys((*verdict.evidence_ids, *payload.dependency_evidence_ids)))
+        verdict = RuleVerdict(
+            rule_key=verdict.rule_key,
+            analysis_status=verdict.analysis_status,
+            execution_prediction=verdict.execution_prediction,
+            risk=verdict.risk,
+            lock=verdict.lock,
+            table_rewrite=verdict.table_rewrite,
+            table_scan=verdict.table_scan,
+            index_rebuild=verdict.index_rebuild,
+            confidence=verdict.confidence,
+            limitations=verdict.limitations,
+            evidence_ids=merged_ids,
+            why=verdict.why,
+            no_op_reason=verdict.no_op_reason,
+        )
+    return _card_from_verdict(stmt, verdict)
 
 
 def _assemble_completed(

@@ -33,6 +33,7 @@ def test_registry_contains_required_query_ids() -> None:
         "impact.fetch_function",
         "impact.fetch_dependency_edges",
         "impact.fetch_pg_class_classoid",
+        "impact.fetch_rewrite_ev_class",
         "impact.fetch_relation_metrics",
         "impact.fetch_pg_cast",
     }
@@ -111,6 +112,7 @@ def test_expected_row_models_are_wired_to_their_query_ids() -> None:
         "impact.fetch_function": "FunctionRow",
         "impact.fetch_dependency_edges": "DependencyEdgeRow",
         "impact.fetch_pg_class_classoid": "CatalogClassOidRow",
+        "impact.fetch_rewrite_ev_class": "RewriteEvClassRow",
         "impact.fetch_relation_metrics": "RelationMetricsRow",
         "impact.fetch_pg_cast": "PgCastRow",
     }

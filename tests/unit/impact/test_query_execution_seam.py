@@ -130,6 +130,9 @@ def test_array_parameters_accept_list_or_tuple() -> None:
     execute_allowlisted(runner, "impact.resolve_relation_candidates", (("public",), "t"))
     execute_allowlisted(runner, "impact.resolve_relation_candidates", (["public"], "t"))
     assert len(runner.calls) == 2
+    # Python tuples must be normalized to lists before psycopg array adaptation.
+    assert runner.calls[0][1] == (["public"], "t")
+    assert runner.calls[1][1] == (["public"], "t")
 
 
 def test_unsupported_fetch_mode_executes_nothing() -> None:
@@ -162,7 +165,7 @@ def test_executed_sql_is_identical_to_registry_spec() -> None:
     execute_allowlisted(session, "impact.resolve_relation_candidates", (("public",), "t"))
     executed_sql, executed_params = cursors[0].execute.call_args[0]
     assert executed_sql == IMPACT_QUERY_REGISTRY["impact.resolve_relation_candidates"].sql
-    assert executed_params == (("public",), "t")
+    assert executed_params == (["public"], "t")
 
 
 # --- Recording reflects real invocation --------------------------------------

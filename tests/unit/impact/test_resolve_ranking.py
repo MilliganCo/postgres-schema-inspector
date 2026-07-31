@@ -238,7 +238,10 @@ def test_resolve_function_qualified_found_passes_argtypes_param() -> None:
     assert result.status == "resolved"
     assert result.oid == 99
     assert executor.calls == [
-        ("impact.resolve_function_candidates", (("pg_catalog",), "clock_timestamp", ()))
+        (
+            "impact.resolve_function_candidates",
+            (("pg_catalog",), "clock_timestamp", (), ()),
+        )
     ]
 
 
