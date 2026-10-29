@@ -2,7 +2,7 @@
 
 **postgres-schema-inspector** — explainable, read-only PostgreSQL diagnostics (Foundation).
 
-> **Status:** Foundation complete in this private repository. Not published to PyPI. Visibility remains private until a separate `PUBLICATION_APPROVED` gate.
+> **Status:** Public source preview. Foundation and in-repository impact prototype; not published to PyPI. See [PUBLICATION.md](PUBLICATION.md) for current review and limitations.
 
 ## What it is
 
@@ -16,9 +16,9 @@ It does **not** truncate data, run maintenance writes, claim that a role is unab
 | ------- | ------- |
 | `pginspect version` | Print the installed package version |
 | `pginspect connect-test` | Verify connectivity and session safety settings |
-| `pginspect impact` | **Prototype / private-repository feature** — catalog change-impact analysis for selected `ALTER TABLE` forms (not a shipped, reliability-guaranteed release) |
+| `pginspect impact` | **In-repository prototype** — catalog change-impact analysis for selected `ALTER TABLE` forms (not a shipped, reliability-guaranteed release) |
 
-Foundation product surface remains `version` and `connect-test`. `impact` is an in-repo prototype while this repository stays private.
+Foundation product surface remains `version` and `connect-test`. `impact` remains an in-repository prototype; public source visibility is not a reliability guarantee.
 
 ### Examples
 
